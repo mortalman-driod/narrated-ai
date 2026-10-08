@@ -6,6 +6,8 @@ A modern, production-grade AI content creation workstation inspired by **Narrate
 [![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
 [![Remotion](https://img.shields.io/badge/Remotion-4-purple.svg)](https://remotion.dev/)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmortalman-driod%2Fnarrated-ai&env=GEMINI_API_KEY&envDescription=Optional%20Google%20Gemini%20API%20key%20for%20creative%20cloud%20storyboards)
+
 
 ---
 
