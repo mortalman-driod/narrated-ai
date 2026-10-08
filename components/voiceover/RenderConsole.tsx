@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Play, Square, Download, Sparkles, Volume2, Gauge, Check, RefreshCw, Radio } from 'lucide-react';
 import { RenderJob, AudioChunk, VoiceProfile, PronunciationRule } from '@/lib/voiceover/types';
 import { downloadFile, convertMp3BlobToWav, generateSyntheticToneWav } from '@/lib/voiceover/audioExporter';
 import { applyPronunciationLexicon } from '@/lib/voiceover/lexicon';
+import { Card3D } from '@/components/ui/Card3D';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { SoundWaveVisualizer } from '@/components/ui/SoundWaveVisualizer';
 
 interface RenderConsoleProps {
   job: RenderJob | null;
@@ -131,7 +135,6 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
       let audioBlob: Blob | null = null;
 
       if (mode === 'signature') {
-        // Voice's signature sample text
         const sample = voice.sampleAudioText || voice.nigerianSampleText || `Hello, I am ${voice.name}. Welcome to the studio.`;
         const res = await fetch('/api/tts', {
           method: 'POST',
@@ -141,7 +144,6 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
         if (!res.ok) throw new Error(`Preview failed with status ${res.status}`);
         audioBlob = await res.blob();
       } else if (mode === 'custom') {
-        // Custom text entered by user
         const clean = customPreviewText.trim() || `Testing the voice of ${voice.name}.`;
         const processed = applyPronunciationLexicon(clean, lexiconRules);
         const res = await fetch('/api/tts', {
@@ -152,7 +154,6 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
         if (!res.ok) throw new Error(`Preview failed with status ${res.status}`);
         audioBlob = await res.blob();
       } else if (mode === 'excerpt') {
-        // First 1-2 chunks of the current script (~100-150 words)
         const excerptChunks = job.chunks.slice(0, 2);
         const excerptText = excerptChunks.map((c) => c.text).join(' ');
         const processed = applyPronunciationLexicon(excerptText, lexiconRules);
@@ -164,7 +165,6 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
         if (!res.ok) throw new Error(`Preview failed with status ${res.status}`);
         audioBlob = await res.blob();
       } else if (mode === 'full') {
-        // Concatenate all chunks (using cached blobs if available)
         const chunkBlobs: Blob[] = [];
         for (let i = 0; i < job.chunks.length; i++) {
           const chunk = job.chunks[i];
@@ -231,7 +231,7 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
   // Robust Master Exporter (chunk-by-chunk concatenation)
   const handleDownload = async (format: 'wav' | 'mp3' | 'txt') => {
     setDownloadingFormat(format);
-    setExportProgressText('Preparing master export...');
+    setExportProgressText('Preparing broadcast master export...');
 
     try {
       const cleanTitle = job.projectName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
@@ -246,7 +246,6 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
         return;
       }
 
-      // Gather or synthesize all chunks one by one
       const chunkBlobs: Blob[] = [];
       const total = job.chunks.length;
 
@@ -312,408 +311,412 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
   };
 
   return (
-    <div className="bg-white border border-[#E8E2D9] rounded-[8px] p-6 shadow-sm space-y-6">
+    <div className="bg-[#030714]/90 border border-white/[0.08] rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E2D9] pb-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div>
-          <span className="text-[11px] font-mono uppercase tracking-widest text-[#4D7C0F] font-semibold">
-            Production Console
-          </span>
-          <h3 className="text-xl font-serif font-bold text-[#1C1917] mt-0.5">
-            Voiceover Synthesis & Pipeline
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              Production Console
+            </span>
+            <span className="text-xs text-slate-400">Zero-Latency Neural Pipeline</span>
+          </div>
+          <h3 className="text-xl font-bold text-white mt-1">
+            Voiceover Synthesis & Broadcast Console
           </h3>
-          <p className="text-xs text-[#6B6259] mt-0.5">
-            Narrator: <strong className="text-[#1C1917]">{voice.name}</strong> ({voice.accent}) •{' '}
-            {totalChunks} passage chunks (~{job.estimatedDurationSeconds}s total audio)
+          <p className="text-xs text-slate-400 mt-0.5">
+            Narrator: <strong className="text-amber-300">{voice.name}</strong> ({voice.accent}) •{' '}
+            {totalChunks} passage chunks (~{job.estimatedDurationSeconds}s runtime)
           </p>
         </div>
 
         {/* Primary Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3">
           {isRendering ? (
-            <button
+            <AnimatedButton
               type="button"
+              variant="secondary"
               onClick={onPauseRender}
-              className="px-4 py-2 rounded-[6px] border border-[#1C1917] text-[#1C1917] hover:bg-[#FAF7F2] text-xs font-semibold transition-colors"
+              icon={<Square className="w-3.5 h-3.5 text-rose-400" />}
+              className="text-xs px-4 py-2"
             >
-              ❚❚ Pause Pipeline
-            </button>
+              Pause Pipeline
+            </AnimatedButton>
           ) : (
-            <button
+            <AnimatedButton
               type="button"
+              variant="cyber"
+              shimmer={true}
               onClick={onStartRender}
-              className="px-5 py-2.5 rounded-[6px] bg-[#B4532A] hover:bg-[#9A4524] text-white text-xs font-semibold transition-all shadow-sm flex items-center gap-2"
+              icon={<Play className="w-3.5 h-3.5 text-amber-300" />}
+              className="text-xs px-5 py-2.5 font-bold"
             >
-              ▶ Render All Chunks
-            </button>
+              Render All Chunks
+            </AnimatedButton>
           )}
         </div>
       </div>
 
       {/* Progress Bar & ETA */}
-      <div className="space-y-2 bg-[#FAF7F2] p-4 rounded-[6px] border border-[#E8E2D9]">
+      <div className="space-y-2 bg-black/40 p-4 sm:p-5 rounded-2xl border border-white/[0.08]">
         <div className="flex items-center justify-between text-xs">
-          <span className="font-semibold text-[#1C1917]">
+          <span className="font-semibold text-slate-200 flex items-center gap-2">
+            {isRendering && <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />}
             {isRendering
-              ? `Rendering passage ${completedChunks + 1} of ${totalChunks}...`
+              ? `Synthesizing passage ${completedChunks + 1} of ${totalChunks}...`
               : progress === 100
-              ? 'All Chunks Synthesized — 100% Ready for Export'
-              : 'Ready to Synthesize'}
+              ? 'All Chunks Synthesized — 100% Ready for Broadcast Master Export'
+              : 'Pipeline Ready to Synthesize'}
           </span>
-          <span className="font-mono text-[#B4532A] font-bold">{progress}%</span>
+          <span className="font-mono text-amber-300 font-bold text-sm">{progress}%</span>
         </div>
 
-        <div className="w-full bg-[#E8E2D9] h-2.5 rounded-full overflow-hidden">
+        <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden relative">
           <div
-            className="bg-[#4D7C0F] h-full transition-all duration-300 rounded-full"
+            className="bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-500 h-full transition-all duration-300 rounded-full"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-[#6B6259] font-mono pt-1">
-          <span>{completedChunks} / {totalChunks} chunks assembled</span>
-          <span>{job.etaSeconds > 0 ? `~${job.etaSeconds}s remaining` : 'Zero API latency'}</span>
+        <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono pt-1">
+          <span>{completedChunks} / {totalChunks} chunks synthesized</span>
+          <span>{job.etaSeconds > 0 ? `~${job.etaSeconds}s remaining` : 'Instant 0 API latency'}</span>
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* 🎧 NEW SECTION: VOICE AUDITION & PRE-EXPORT PREVIEW      */}
-      {/* ======================================================== */}
-      <div className="bg-[#FAF7F2] border-2 border-[#E8E2D9] rounded-xl p-5 shadow-sm space-y-4">
-        {/* Section Title & Voice Switcher */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#E8E2D9] pb-3.5">
-          <div className="flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-full bg-[#B4532A]/10 text-[#B4532A] flex items-center justify-center text-sm font-bold border border-[#B4532A]/30">
-              🎙️
-            </span>
-            <div>
-              <h4 className="text-sm font-serif font-bold text-[#1C1917]">
-                Voice Audition & Pre-Export Preview
-              </h4>
-              <p className="text-[11px] text-[#6B6259]">
-                Listen to the voice performance, test custom phrases, or switch narrators before exporting.
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Voice Switcher Dropdown */}
-          {availableVoices.length > 0 && onSelectVoice && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-[#6B6259] font-medium hidden md:inline">Voice:</span>
-              <select
-                value={voice.id}
-                onChange={(e) => {
-                  const newVoice = availableVoices.find((v) => v.id === e.target.value);
-                  if (newVoice) {
-                    handleStopPreview();
-                    onSelectVoice(newVoice);
-                  }
-                }}
-                className="text-xs font-serif font-bold py-1.5 px-3 rounded-[6px] border border-[#E8E2D9] bg-white text-[#1C1917] focus:outline-none focus:border-[#B4532A] cursor-pointer shadow-xs"
-              >
-                <optgroup label="🇳🇬 Nigerian Male">
-                  {availableVoices
-                    .filter((v) => v.category === 'nigerian-male')
-                    .map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.tone})
-                      </option>
-                    ))}
-                </optgroup>
-                <optgroup label="🇳🇬 Nigerian Female">
-                  {availableVoices
-                    .filter((v) => v.category === 'nigerian-female')
-                    .map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.tone})
-                      </option>
-                    ))}
-                </optgroup>
-                <optgroup label="🌍 Foreign Male">
-                  {availableVoices
-                    .filter((v) => v.category === 'foreign-male')
-                    .map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.tone})
-                      </option>
-                    ))}
-                </optgroup>
-                <optgroup label="🌍 Foreign Female">
-                  {availableVoices
-                    .filter((v) => v.category === 'foreign-female')
-                    .map((v) => (
-                      <option key={v.id} value={v.id}>
-                        {v.name} ({v.tone})
-                      </option>
-                    ))}
-                </optgroup>
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* Narrator Profile Pill & Badges */}
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="px-2.5 py-1 rounded-full bg-white border border-[#E8E2D9] font-bold text-[#1C1917]">
-            {voice.voiceGender === 'male' ? '👨 Male' : '👩 Female'} Narrator: {voice.name}
-          </span>
-          <span className="px-2 py-0.5 rounded-full bg-[#4D7C0F]/10 text-[#4D7C0F] font-mono text-[10px] font-bold border border-[#4D7C0F]/20">
-            {voice.accent}
-          </span>
-          <span className="px-2 py-0.5 rounded-full bg-[#1C1917]/5 text-[#6B6259] font-mono text-[10px]">
-            Tone: {voice.tone}
-          </span>
-          <span className="px-2 py-0.5 rounded-full bg-[#B4532A]/10 text-[#B4532A] font-mono text-[10px]">
-            24kHz Neural Broadcast HD
-          </span>
-        </div>
-
-        {/* Audition Mode Tabs */}
-        <div className="flex flex-wrap items-center gap-1.5 border-b border-[#E8E2D9] pb-3 text-xs">
-          <span className="text-[11px] text-[#6B6259] font-medium mr-1">Preview Source:</span>
-          <button
-            type="button"
-            onClick={() => handlePlayPreview('excerpt')}
-            disabled={isPreviewLoading}
-            className={`px-3 py-1.5 rounded-[5px] font-semibold text-xs transition-all ${
-              previewMode === 'excerpt'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-white text-[#1C1917] border border-[#E8E2D9] hover:border-[#1C1917]'
-            }`}
-          >
-            ▶ Story Excerpt (Opening)
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handlePlayPreview('full')}
-            disabled={isPreviewLoading}
-            className={`px-3 py-1.5 rounded-[5px] font-semibold text-xs transition-all ${
-              previewMode === 'full'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-white text-[#1C1917] border border-[#E8E2D9] hover:border-[#1C1917]'
-            }`}
-          >
-            ▶ Full Voiceover Stream
-          </button>
-
-          <button
-            type="button"
-            onClick={() => handlePlayPreview('signature')}
-            disabled={isPreviewLoading}
-            className={`px-3 py-1.5 rounded-[5px] font-semibold text-xs transition-all ${
-              previewMode === 'signature'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-white text-[#1C1917] border border-[#E8E2D9] hover:border-[#1C1917]'
-            }`}
-          >
-            ▶ Signature Tone Sample
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setPreviewMode('custom')}
-            className={`px-3 py-1.5 rounded-[5px] font-semibold text-xs transition-all ${
-              previewMode === 'custom'
-                ? 'bg-[#B4532A] text-white shadow-xs'
-                : 'bg-white text-[#1C1917] border border-[#E8E2D9] hover:border-[#B4532A]'
-            }`}
-          >
-            ✍ Test Custom Words
-          </button>
-        </div>
-
-        {/* Custom Phrase Audition Input (Visible when Mode === 'custom') */}
-        {previewMode === 'custom' && (
-          <div className="bg-white p-3 rounded-[6px] border border-[#E8E2D9] space-y-2">
-            <label className="text-[11px] font-semibold text-[#1C1917] block">
-              Type custom words, names, or dialect phrases to test {voice.name}'s pronunciation:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={customPreviewText}
-                onChange={(e) => setCustomPreviewText(e.target.value)}
-                placeholder="e.g. In ancient Nigeria, the warriors of the empire stood firm..."
-                className="flex-1 text-xs px-3 py-2 rounded-[5px] border border-[#E8E2D9] focus:outline-none focus:border-[#B4532A] font-mono text-[#1C1917]"
-              />
-              <button
-                type="button"
-                onClick={() => handlePlayPreview('custom')}
-                disabled={isPreviewLoading}
-                className="px-4 py-2 bg-[#B4532A] hover:bg-[#9A4524] text-white font-semibold text-xs rounded-[5px] transition-colors shrink-0 disabled:opacity-50"
-              >
-                {isPreviewLoading ? 'Generating...' : '▶ Audition Words'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Main Audio Player Controls & Waveform Bar */}
-        <div className="bg-white p-4 rounded-lg border border-[#E8E2D9] flex flex-col gap-3 shadow-xs">
-          <div className="flex items-center justify-between gap-3">
-            {/* Play / Pause / Stop Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleTogglePlayPause}
-                disabled={isPreviewLoading}
-                className="w-10 h-10 rounded-full bg-[#1C1917] hover:bg-[#B4532A] text-white flex items-center justify-center text-sm font-bold transition-all shadow-sm disabled:opacity-50"
-                title={isPreviewPlaying ? 'Pause' : 'Play'}
-              >
-                {isPreviewLoading ? (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : isPreviewPlaying ? (
-                  '❚❚'
-                ) : (
-                  '▶'
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleStopPreview}
-                className="px-2.5 py-1.5 rounded-[5px] border border-[#E8E2D9] hover:bg-[#FAF7F2] text-[#6B6259] text-xs font-semibold transition-colors"
-                title="Stop Audio"
-              >
-                ■ Stop
-              </button>
-
-              {/* Animated Waveform Visualizer */}
-              <div className="flex items-center gap-1 pl-2">
-                {[0.4, 0.8, 0.6, 1.0, 0.7, 0.9, 0.5, 0.8, 0.6, 0.4].map((scale, i) => (
-                  <span
-                    key={i}
-                    className={`w-1 rounded-full transition-all duration-200 ${
-                      isPreviewPlaying ? 'bg-[#4D7C0F] animate-pulse' : 'bg-[#E8E2D9]'
-                    }`}
-                    style={{
-                      height: isPreviewPlaying ? `${Math.max(6, scale * 22)}px` : '6px'
-                    }}
-                  />
-                ))}
+      {/* 🎧 VOICE AUDITION & PRE-EXPORT PREVIEW */}
+      <Card3D maxTilt={2} glare={false}>
+        <div className="bg-[#050C1F]/90 border border-white/[0.08] rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
+          {/* Section Title & Voice Switcher */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-300 flex items-center justify-center text-sm font-bold border border-amber-500/30">
+                🎙️
+              </span>
+              <div>
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span>Voice Audition & Pre-Export Preview</span>
+                  {isPreviewPlaying && <SoundWaveVisualizer isPlaying={true} barCount={6} color="from-amber-400 to-rose-400" />}
+                </h4>
+                <p className="text-[11px] text-slate-400">
+                  Audition narration performance, test custom phrases, or switch voice talents before master export.
+                </p>
               </div>
             </div>
 
-            {/* Time Indicator & Status */}
-            <div className="text-right">
-              <span className="font-mono text-xs font-bold text-[#1C1917]">
-                {formatSeconds(previewCurrentTime)} / {formatSeconds(previewDuration || 0)}
-              </span>
-              <p className="text-[10px] text-[#6B6259]">
-                {isPreviewLoading
-                  ? 'Synthesizing neural audio...'
-                  : isPreviewPlaying
-                  ? `Auditioning ${voice.name} live`
-                  : 'Ready to audition'}
-              </p>
-            </div>
-          </div>
-
-          {/* Interactive Scrubber Bar */}
-          <div className="flex items-center gap-2">
-            <input
-              type="range"
-              min={0}
-              max={previewDuration || 100}
-              value={previewCurrentTime}
-              onChange={handleSeek}
-              disabled={isPreviewLoading || !previewAudioRef.current}
-              className="w-full h-1.5 bg-[#E8E2D9] rounded-lg appearance-none cursor-pointer accent-[#B4532A]"
-            />
-          </div>
-
-          {/* Speed & Volume Tools */}
-          <div className="flex flex-wrap items-center justify-between text-xs pt-1 border-t border-[#E8E2D9]/60">
-            {/* Speed Selector */}
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-[#6B6259]">Speed:</span>
-              {[0.8, 1.0, 1.2].map((spd) => (
-                <button
-                  key={spd}
-                  type="button"
-                  onClick={() => handleSetSpeed(spd)}
-                  className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-colors ${
-                    playbackRate === spd
-                      ? 'bg-[#1C1917] text-white'
-                      : 'bg-[#FAF7F2] text-[#6B6259] hover:bg-[#E8E2D9]'
-                  }`}
+            {/* Quick Voice Switcher Dropdown */}
+            {availableVoices.length > 0 && onSelectVoice && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400 font-medium hidden md:inline">Narrator:</span>
+                <select
+                  value={voice.id}
+                  onChange={(e) => {
+                    const newVoice = availableVoices.find((v) => v.id === e.target.value);
+                    if (newVoice) {
+                      handleStopPreview();
+                      onSelectVoice(newVoice);
+                    }
+                  }}
+                  className="text-xs font-sans font-bold py-1.5 px-3 rounded-xl border border-white/[0.08] bg-black/60 text-white focus:outline-none focus:border-amber-400 cursor-pointer shadow-inner"
                 >
-                  {spd}x
-                </button>
-              ))}
+                  <optgroup label="🇳🇬 Nigerian Male">
+                    {availableVoices
+                      .filter((v) => v.category === 'nigerian-male')
+                      .map((v) => (
+                        <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                          {v.name} ({v.tone})
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="🇳🇬 Nigerian Female">
+                    {availableVoices
+                      .filter((v) => v.category === 'nigerian-female')
+                      .map((v) => (
+                        <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                          {v.name} ({v.tone})
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="🌍 Global Male">
+                    {availableVoices
+                      .filter((v) => v.category === 'foreign-male')
+                      .map((v) => (
+                        <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                          {v.name} ({v.tone})
+                        </option>
+                      ))}
+                  </optgroup>
+                  <optgroup label="🌍 Global Female">
+                    {availableVoices
+                      .filter((v) => v.category === 'foreign-female')
+                      .map((v) => (
+                        <option key={v.id} value={v.id} className="bg-slate-900 text-white">
+                          {v.name} ({v.tone})
+                        </option>
+                      ))}
+                  </optgroup>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Narrator Profile Badges */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="px-2.5 py-1 rounded-full bg-black/40 border border-white/[0.08] font-bold text-white">
+              {voice.voiceGender === 'male' ? '👨 Male' : '👩 Female'} Narrator: {voice.name}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-mono text-[10px] font-bold border border-emerald-500/25">
+              {voice.accent}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-black/40 text-slate-300 font-mono text-[10px] border border-white/[0.08]">
+              Tone: {voice.tone}
+            </span>
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-mono text-[10px] border border-amber-500/25">
+              24kHz Neural HD
+            </span>
+          </div>
+
+          {/* Audition Mode Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-white/[0.08] pb-3 text-xs">
+            <span className="text-[11px] text-slate-400 font-medium mr-1">Preview Source:</span>
+            <button
+              type="button"
+              onClick={() => handlePlayPreview('excerpt')}
+              disabled={isPreviewLoading}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                previewMode === 'excerpt'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/40 border border-white/[0.08]'
+              }`}
+            >
+              ▶ Story Excerpt (Opening)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handlePlayPreview('full')}
+              disabled={isPreviewLoading}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                previewMode === 'full'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/40 border border-white/[0.08]'
+              }`}
+            >
+              ▶ Full Voiceover Stream
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handlePlayPreview('signature')}
+              disabled={isPreviewLoading}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                previewMode === 'signature'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/40 border border-white/[0.08]'
+              }`}
+            >
+              ▶ Signature Tone Sample
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPreviewMode('custom')}
+              className={`px-3 py-1.5 rounded-lg font-semibold text-xs transition-all ${
+                previewMode === 'custom'
+                  ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm'
+                  : 'text-slate-400 hover:text-white bg-black/40 border border-white/[0.08]'
+              }`}
+            >
+              ✍ Test Custom Words
+            </button>
+          </div>
+
+          {/* Custom Phrase Audition Input */}
+          {previewMode === 'custom' && (
+            <div className="bg-black/40 p-3 rounded-xl border border-white/[0.08] space-y-2">
+              <label className="text-[11px] font-semibold text-slate-200 block">
+                Type custom words, names, or dialect phrases to test {voice.name}'s pronunciation:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customPreviewText}
+                  onChange={(e) => setCustomPreviewText(e.target.value)}
+                  placeholder="e.g. In ancient Nigeria, the warriors of the empire stood firm..."
+                  className="flex-1 text-xs px-3 py-2 rounded-lg border border-white/[0.08] bg-black/50 text-white focus:outline-none focus:border-amber-400 font-sans"
+                />
+                <AnimatedButton
+                  type="button"
+                  variant="cyber"
+                  onClick={() => handlePlayPreview('custom')}
+                  disabled={isPreviewLoading}
+                  className="text-xs px-4 py-2 shrink-0 font-bold"
+                >
+                  {isPreviewLoading ? 'Generating...' : 'Audition Words'}
+                </AnimatedButton>
+              </div>
+            </div>
+          )}
+
+          {/* Main Audio Player Controls & Waveform Bar */}
+          <div className="bg-black/50 p-4 rounded-2xl border border-white/[0.08] flex flex-col gap-3 shadow-inner">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <AnimatedButton
+                  type="button"
+                  variant="primary"
+                  onClick={handleTogglePlayPause}
+                  disabled={isPreviewLoading}
+                  className="w-10 h-10 !p-0 rounded-full flex items-center justify-center font-bold"
+                  title={isPreviewPlaying ? 'Pause' : 'Play'}
+                >
+                  {isPreviewLoading ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : isPreviewPlaying ? (
+                    '❚❚'
+                  ) : (
+                    '▶'
+                  )}
+                </AnimatedButton>
+
+                <AnimatedButton
+                  type="button"
+                  variant="secondary"
+                  onClick={handleStopPreview}
+                  className="text-xs px-2.5 py-1.5"
+                  title="Stop Audio"
+                >
+                  ■ Stop
+                </AnimatedButton>
+
+                <div className="pl-2">
+                  <SoundWaveVisualizer isPlaying={isPreviewPlaying} barCount={10} color="from-cyan-400 to-amber-400" />
+                </div>
+              </div>
+
+              {/* Time Indicator & Status */}
+              <div className="text-right">
+                <span className="font-mono text-xs font-bold text-white">
+                  {formatSeconds(previewCurrentTime)} / {formatSeconds(previewDuration || 0)}
+                </span>
+                <p className="text-[10px] text-slate-400">
+                  {isPreviewLoading
+                    ? 'Synthesizing neural audio...'
+                    : isPreviewPlaying
+                    ? `Auditioning ${voice.name} live`
+                    : 'Ready to audition'}
+                </p>
+              </div>
             </div>
 
-            {/* Volume Control */}
+            {/* Interactive Scrubber Bar */}
             <div className="flex items-center gap-2">
-              <span className="text-[11px] text-[#6B6259]">🔊 Volume:</span>
               <input
                 type="range"
                 min={0}
-                max={1}
-                step={0.05}
-                value={previewVolume}
-                onChange={handleVolumeChange}
-                className="w-20 h-1 bg-[#E8E2D9] rounded-lg appearance-none cursor-pointer accent-[#1C1917]"
+                max={previewDuration || 100}
+                value={previewCurrentTime}
+                onChange={handleSeek}
+                disabled={isPreviewLoading || !previewAudioRef.current}
+                className="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-amber-400"
               />
-              <span className="font-mono text-[10px] text-[#6B6259]">
-                {Math.round(previewVolume * 100)}%
-              </span>
+            </div>
+
+            {/* Speed & Volume Tools */}
+            <div className="flex flex-wrap items-center justify-between text-xs pt-2 border-t border-white/[0.08]">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-slate-400">Speed:</span>
+                {[0.8, 1.0, 1.2].map((spd) => (
+                  <button
+                    key={spd}
+                    type="button"
+                    onClick={() => handleSetSpeed(spd)}
+                    className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-colors ${
+                      playbackRate === spd
+                        ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40'
+                        : 'bg-black/40 text-slate-400 hover:text-white border border-white/[0.06]'
+                    }`}
+                  >
+                    {spd}x
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400">🔊 Volume:</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={previewVolume}
+                  onChange={handleVolumeChange}
+                  className="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-cyan-400"
+                />
+                <span className="font-mono text-[10px] text-slate-400">
+                  {Math.round(previewVolume * 100)}%
+                </span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </Card3D>
 
       {/* Chunks Queue Table */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-bold text-[#1C1917] uppercase tracking-wider">
-            Passage Chunks (20–40s Intervals)
+          <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <span>Passage Chunks (20–40s Intervals)</span>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/25">
+              {job.chunks.length} Total
+            </span>
           </h4>
-          <span className="text-[11px] text-[#6B6259]">
+          <span className="text-[11px] text-slate-400">
             Click any passage to audition it individually
           </span>
         </div>
 
-        <div className="divide-y divide-[#E8E2D9] border border-[#E8E2D9] rounded-[6px] max-h-72 overflow-y-auto bg-white">
+        <div className="divide-y divide-white/[0.06] border border-white/[0.08] rounded-2xl max-h-72 overflow-y-auto bg-black/40 backdrop-blur-md">
           {job.chunks.map((chunk) => (
             <div
               key={chunk.chunkIndex}
-              className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-[#FAF7F2] transition-colors"
+              className="p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-white/[0.03] transition-colors"
             >
               <div className="space-y-1 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#FAF7F2] border border-[#E8E2D9] text-[#1C1917]">
+                  <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/10 border border-white/10 text-white">
                     #{chunk.chunkIndex}
                   </span>
-                  <span className="font-mono text-[11px] text-[#6B6259]">
+                  <span className="font-mono text-[11px] text-slate-400">
                     {chunk.wordCount} words • ~{chunk.estimatedSeconds}s
                   </span>
                   <span
-                    className={`text-[10px] font-mono px-2 py-0.2 rounded-full ${
+                    className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
                       chunk.status === 'completed'
-                        ? 'bg-[#4D7C0F]/15 text-[#4D7C0F]'
+                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
                         : chunk.status === 'synthesizing'
-                        ? 'bg-[#B4532A]/15 text-[#B4532A] animate-pulse'
-                        : 'bg-[#E8E2D9] text-[#6B6259]'
+                        ? 'bg-amber-500/15 text-amber-300 border-amber-500/25 animate-pulse'
+                        : 'bg-white/5 text-slate-400 border-white/10'
                     }`}
                   >
                     {chunk.status}
                   </span>
                 </div>
-                <p className="text-[#1C1917] line-clamp-2 leading-relaxed italic pl-1">
+                <p className="text-slate-300 line-clamp-2 leading-relaxed italic pl-1 font-serif">
                   "{chunk.text}"
                 </p>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <button
+                <AnimatedButton
                   type="button"
+                  variant="secondary"
                   onClick={() => onPlayChunk(chunk)}
-                  className="px-3 py-1 rounded-[4px] border border-[#E8E2D9] bg-white hover:border-[#1C1917] text-[#1C1917] font-semibold text-xs transition-colors"
+                  icon={<Play className="w-3 h-3 text-amber-300" />}
+                  className="text-xs px-3 py-1"
                 >
-                  ▶ Audition Chunk
-                </button>
+                  Audition Chunk
+                </AnimatedButton>
               </div>
             </div>
           ))}
@@ -721,12 +724,15 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
       </div>
 
       {/* Export Panel */}
-      <div className="pt-4 border-t border-[#E8E2D9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="pt-5 border-t border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h4 className="text-xs font-bold text-[#1C1917]">Broadcast Masters & Production Export</h4>
-          <p className="text-[11px] text-[#6B6259]">
+          <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Broadcast Masters & Production Audio Export</span>
+          </h4>
+          <p className="text-[11px] text-slate-400 mt-0.5">
             {exportProgressText ? (
-              <span className="text-[#B4532A] font-semibold font-mono animate-pulse">
+              <span className="text-amber-300 font-semibold font-mono animate-pulse">
                 {exportProgressText}
               </span>
             ) : (
@@ -735,47 +741,39 @@ export const RenderConsole: React.FC<RenderConsoleProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button
+        <div className="flex flex-wrap items-center gap-2.5">
+          <AnimatedButton
             type="button"
+            variant="secondary"
             onClick={() => handleDownload('wav')}
             disabled={downloadingFormat !== null}
-            className="px-4 py-2.5 rounded-[6px] border border-[#1C1917] hover:bg-[#FAF7F2] text-[#1C1917] text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+            icon={downloadingFormat === 'wav' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
+            className="text-xs px-4 py-2.5"
           >
-            {downloadingFormat === 'wav' ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-[#1C1917] border-t-transparent rounded-full animate-spin" />
-                <span>Exporting Master WAV...</span>
-              </>
-            ) : (
-              'Download WAV Master'
-            )}
-          </button>
+            {downloadingFormat === 'wav' ? 'Exporting WAV...' : 'Download WAV Master'}
+          </AnimatedButton>
 
-          <button
+          <AnimatedButton
             type="button"
+            variant="cyber"
+            shimmer={true}
             onClick={() => handleDownload('mp3')}
             disabled={downloadingFormat !== null}
-            className="px-4 py-2.5 rounded-[6px] bg-[#1C1917] hover:bg-black text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 shadow-sm"
+            icon={downloadingFormat === 'mp3' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
+            className="text-xs px-4 py-2.5 font-bold"
           >
-            {downloadingFormat === 'mp3' ? (
-              <>
-                <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Assembling MP3...</span>
-              </>
-            ) : (
-              'Download MP3'
-            )}
-          </button>
+            {downloadingFormat === 'mp3' ? 'Assembling MP3...' : 'Download MP3'}
+          </AnimatedButton>
 
-          <button
+          <AnimatedButton
             type="button"
+            variant="ghost"
             onClick={() => handleDownload('txt')}
             disabled={downloadingFormat !== null}
-            className="px-3.5 py-2.5 rounded-[6px] border border-[#E8E2D9] bg-white hover:border-[#6B6259] text-[#6B6259] text-xs font-semibold transition-colors disabled:opacity-50"
+            className="text-xs px-3.5 py-2.5 text-slate-400 hover:text-white"
           >
             Script .TXT
-          </button>
+          </AnimatedButton>
         </div>
       </div>
     </div>

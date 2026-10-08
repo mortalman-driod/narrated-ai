@@ -28,7 +28,7 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene }) => {
 
   return (
     <Card3D maxTilt={6} className="h-full">
-      <div className="bg-[#0E1524]/90 border border-white/[0.08] hover:border-cyan-500/50 rounded-2xl p-5 transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 backdrop-blur-md flex flex-col justify-between h-full group">
+      <div className="bg-[#030714]/85 border border-white/[0.08] hover:border-cyan-500/50 rounded-2xl p-5 transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 backdrop-blur-md flex flex-col justify-between h-full group">
         <div>
           {/* Top Header */}
           <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.06]">

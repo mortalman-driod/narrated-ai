@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, HTMLMotionProps } from 'framer-motion';
 
 interface AnimatedButtonProps extends HTMLMotionProps<'button'> {
-  variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'cyber';
+  variant?: 'primary' | 'secondary' | 'accent' | 'danger' | 'ghost' | 'cyber' | 'success';
   glow?: boolean;
   shimmer?: boolean;
   icon?: React.ReactNode;
@@ -27,6 +27,8 @@ export const AnimatedButton: React.FC<AnimatedButtonProps> = ({
         return 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 text-white shadow-glow-cyan hover:shadow-cyan-500/40 border border-cyan-400/30';
       case 'cyber':
         return 'bg-gradient-to-r from-[#B4532A] via-amber-500 to-[#9A4524] text-white shadow-lg shadow-amber-950/40 border border-amber-400/40';
+      case 'success':
+        return 'bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-white shadow-lg shadow-emerald-950/40 border border-emerald-400/40';
       case 'secondary':
         return 'bg-surface/80 hover:bg-surface-hover text-slate-200 border border-border hover:border-slate-500 backdrop-blur-md';
       case 'accent':

@@ -105,8 +105,8 @@ export const NicheSelector: React.FC<NicheSelectorProps> = ({
                 onClick={() => !disabled && onSelectNiche(niche.id)}
                 className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between h-full backdrop-blur-sm ${
                   isSelected
-                    ? 'bg-gradient-to-b from-[#132238] to-[#0D1627] border-cyan-400 shadow-glow-cyan/30 ring-1 ring-cyan-400/60 scale-[1.02]'
-                    : 'bg-[#0E1524]/80 border-white/[0.08] hover:border-slate-500 hover:bg-[#131D31]/80 hover:translate-y-[-2px]'
+                    ? 'bg-gradient-to-b from-[#08152B] to-[#040B17] border-cyan-400 shadow-glow-cyan/30 ring-1 ring-cyan-400/60 scale-[1.02]'
+                    : 'bg-[#030714]/80 border-white/[0.08] hover:border-slate-500 hover:bg-[#060D1E]/80 hover:translate-y-[-2px]'
                 } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div>

@@ -19,13 +19,10 @@ import {
   Clock,
   UserCheck,
   Image as ImageIcon,
-  FileText,
-  AlertCircle,
-  X,
-  Volume2,
-  Copy,
-  Check,
-  Radio
+  Columns,
+  RefreshCw,
+  CheckCircle2,
+  Volume2
 } from 'lucide-react';
 import { NICHE_PRESETS, TONE_OPTIONS, IMAGE_MODELS } from '@/lib/presets';
 import { DurationSlider } from '@/components/DurationSlider';
@@ -38,6 +35,8 @@ import { FullVoiceoverScript } from '@/components/FullVoiceoverScript';
 import { CharacterModelSheet } from '@/components/CharacterModelSheet';
 import { VoiceoverStudio } from '@/components/voiceover/VoiceoverStudio';
 import { StoryboardResponse, ProgressUpdate } from '@/lib/generator/types';
+import { LAUNCH_VOICES } from '@/lib/voiceover/voices';
+import { VoiceProfile } from '@/lib/voiceover/types';
 import { ThreeDCanvas } from '@/components/ui/ThreeDCanvas';
 import { Card3D } from '@/components/ui/Card3D';
 import { AnimatedButton } from '@/components/ui/AnimatedButton';
@@ -54,24 +53,31 @@ const SAMPLE_PROMPTS = [
 ];
 
 export default function DashboardPage() {
-  // Input State
+  // Master Studio Layout State: 'dual' (split screen side-by-side) | 'architect' | 'voiceover'
+  const [studioLayout, setStudioLayout] = useState<'dual' | 'architect' | 'voiceover'>('architect');
+
+  // Input & Project State
   const [topic, setTopic] = useState('David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith');
   const [duration, setDuration] = useState(60);
   const [nicheId, setNicheId] = useState('bible-stories');
   const [tone, setTone] = useState('authoritative');
   const [imageModel, setImageModel] = useState<'flux' | 'midjourney' | 'runway'>('flux');
   const [engineMode, setEngineMode] = useState<'cloud' | 'offline'>('cloud');
-  const [activePlatformTab, setActivePlatformTab] = useState<'architect' | 'voiceover'>('architect');
 
-  // Input Mode: 'premise' (generate narrative from premise) vs 'voiceover' (input existing voiceover narration directly)
-  const [inputMode, setInputMode] = useState<'premise' | 'voiceover'>('premise');
-  const [voiceoverText, setVoiceoverText] = useState(
+  // Synchronized Voice Talent State
+  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(LAUNCH_VOICES[0]);
+
+  // Synchronized Master Script State (Single source of truth shared between Architect & Voiceover Studio)
+  const [sharedScript, setSharedScript] = useState<string>(
     `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.
 
 A young shepherd named David, bearing grain for his brothers, refused to surrender faith to fear.
 
 Reaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
   );
+
+  // Input Mode in Prompt Architect: 'premise' (generate narrative from premise) vs 'voiceover' (direct voiceover input)
+  const [inputMode, setInputMode] = useState<'premise' | 'voiceover'>('premise');
   const [isDictating, setIsDictating] = useState(false);
 
   // Generation State
@@ -87,9 +93,9 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
 
-  // Computed metrics for real-time script & duration detection
+  // Computed metrics for real-time script & duration synchronization
   const isDirectVoiceover = inputMode === 'voiceover';
-  const effectiveText = (isDirectVoiceover ? voiceoverText : topic).trim();
+  const effectiveText = (isDirectVoiceover ? sharedScript : topic).trim();
   const inputWords = effectiveText ? effectiveText.split(/\s+/).filter(Boolean).length : 0;
   const isScript = isDirectVoiceover || (inputWords >= 20 && ((effectiveText.match(/[.!?]/g) || []).length >= 2 || effectiveText.includes('\n')));
   const calculatedDuration = Math.max(15, Math.round(inputWords / 2.3));
@@ -126,7 +132,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
           }
         }
         if (transcript) {
-          setVoiceoverText((prev) => (prev ? prev.trim() + ' ' + transcript.trim() : transcript.trim()));
+          setSharedScript((prev) => (prev ? prev.trim() + ' ' + transcript.trim() : transcript.trim()));
         }
       };
       recognition.onerror = () => setIsDictating(false);
@@ -175,6 +181,11 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
       }
 
       setStoryboard(data.storyboard);
+      // Synchronize generated full script with shared script for the Voiceover Studio
+      if (data.storyboard?.full_script) {
+        setSharedScript(data.storyboard.full_script);
+      }
+
       setProgress({
         stage: 'complete',
         percent: 100,
@@ -199,13 +210,20 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
     }
   };
 
+  // Synchronized Bridge: Send script from Voiceover Studio into Architect
+  const handleSendToArchitect = (script: string) => {
+    setSharedScript(script);
+    setInputMode('voiceover');
+    setStudioLayout('architect');
+  };
+
   return (
-    <div className="min-h-screen bg-[#080C14] text-slate-100 flex flex-col relative overflow-x-hidden">
-      {/* Interactive 3D Canvas Perspective Background */}
+    <div className="min-h-screen bg-[#020408] text-slate-100 flex flex-col relative overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
+      {/* Interactive 3D Canvas Constellation Perspective Background */}
       <ThreeDCanvas />
 
       {/* Top Navbar */}
-      <header className="border-b border-white/[0.08] bg-[#0A0F1D]/80 backdrop-blur-xl sticky top-0 z-40 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl">
+      <header className="border-b border-white/[0.06] bg-[#02050E]/90 backdrop-blur-2xl sticky top-0 z-40 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl">
         <div className="flex items-center gap-3 relative z-10">
           <motion.div
             whileHover={{ rotateY: 180, scale: 1.05 }}
@@ -220,100 +238,366 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                 NARRATED AI
               </span>
               <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-semibold shadow-sm">
-                STUDIO SUITE
+                SYNCHRONIZED STUDIO
               </span>
             </h1>
             <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <span>Timestamped Scripts, Diffusion Prompts & Broadcast Voiceovers</span>
+              <span>Timestamped Scripts • 4–8s Diffusion Scenes • Neural Voiceovers</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             </p>
           </div>
         </div>
 
-        {/* Primary Platform Switcher & Engine Mode */}
+        {/* Master Studio Layout Switcher & Engine Mode */}
         <div className="flex flex-wrap items-center gap-3 relative z-10">
-          {/* Sliding Platform Tab Switcher */}
+          {/* Studio Layout Switcher (Dual Split, Architect Focus, Voiceover Focus) */}
           <SlideTabs
             tabs={[
+              { id: 'dual', label: 'Dual Studio', icon: <Columns className="w-3.5 h-3.5 text-emerald-400" />, badge: 'SPLIT' },
               { id: 'architect', label: 'Prompt Architect', icon: <Film className="w-3.5 h-3.5 text-cyan-400" /> },
-              { id: 'voiceover', label: 'Voiceover Studio', icon: <Mic className="w-3.5 h-3.5 text-amber-300" />, badge: 'TTS' }
+              { id: 'voiceover', label: 'Voiceover Studio', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
             ]}
-            activeId={activePlatformTab}
-            onChange={(id) => setActivePlatformTab(id as any)}
+            activeId={studioLayout}
+            onChange={(id) => setStudioLayout(id as any)}
             indicatorClassName={
-              activePlatformTab === 'architect'
+              studioLayout === 'dual'
+                ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 shadow-glow-cyan/40'
+                : studioLayout === 'architect'
                 ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/40'
                 : 'bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/40'
             }
           />
 
-          {/* Engine Mode Toggle (Active in Architect tab) */}
-          {activePlatformTab === 'architect' && (
-            <div className="inline-flex rounded-xl bg-black/40 p-1 border border-white/[0.08] backdrop-blur-md">
-              <button
-                type="button"
-                onClick={() => setEngineMode('cloud')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  engineMode === 'cloud'
-                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="Uses Google Gemini"
-              >
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Cloud</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setEngineMode('offline')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                  engineMode === 'offline'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-                title="100% Offline / Zero API"
-              >
-                <Zap className="w-3 h-3 text-emerald-400" />
-                <span>Offline</span>
-              </button>
-            </div>
-          )}
+          {/* Engine Mode Toggle */}
+          <div className="inline-flex rounded-xl bg-black/50 p-1 border border-white/[0.08] backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setEngineMode('cloud')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                engineMode === 'cloud'
+                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Uses Google Gemini"
+            >
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Cloud</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEngineMode('offline')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                engineMode === 'offline'
+                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="100% Offline / Zero API"
+            >
+              <Zap className="w-3 h-3 text-emerald-400" />
+              <span>Offline</span>
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content Area with Sliding Transition */}
-      <AnimatePresence mode="wait">
-        {activePlatformTab === 'voiceover' ? (
-          <motion.main
-            key="voiceover-view"
-            initial={{ opacity: 0, x: 25 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -25 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 relative z-10"
+      {/* Synchronized Master Status & Project Pill Bar */}
+      <div className="bg-[#030611]/90 border-b border-white/[0.06] px-4 sm:px-6 py-2.5 relative z-20 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>SYNCHRONIZED</span>
+            </span>
+
+            <span className="text-slate-300 font-semibold truncate max-w-xs sm:max-w-md">
+              Project: <span className="text-white">{storyboard?.title || topic}</span>
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
+            <span className="text-slate-300">{inputWords} words</span>
+            <span>•</span>
+            <span className="text-amber-300">~{calculatedDuration}s spoken runtime</span>
+            <span>•</span>
+            <span className="text-cyan-300">{estimatedScenes} scenes (~7.5s/cut)</span>
+            <span>•</span>
+            <span className="text-purple-300 flex items-center gap-1">
+              <Volume2 className="w-3 h-3" />
+              <span>Narrator: {selectedVoice.name} ({selectedVoice.accent.split(' ')[0]})</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Studio Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 relative z-10">
+        {studioLayout === 'dual' ? (
+          /* ======================================================== */
+          /* ⚡ DUAL STUDIO (SPLIT SCREEN SYNCHRONIZED WORKSTATION)    */
+          /* ======================================================== */
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            {/* Left Column (Col 1-7): Narrative & Diffusion Architect */}
+            <div className="xl:col-span-7 space-y-6">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-cyan-400" />
+                  <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                    Visual & Diffusion Architect
+                  </h2>
+                </div>
+                <span className="text-[11px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-400/20">
+                  Target: {imageModel.toUpperCase()}
+                </span>
+              </div>
+
+              {/* Architect Studio Controls */}
+              <Card3D maxTilt={2} glare={false}>
+                <section className="bg-[#030714]/85 border border-white/[0.07] rounded-3xl p-5 sm:p-6 space-y-5 shadow-2xl backdrop-blur-xl">
+                  {/* Sliding Workflow Mode Selector */}
+                  <div className="flex items-center justify-between gap-3 p-1 bg-black/50 border border-white/[0.08] rounded-2xl">
+                    <SlideTabs
+                      tabs={[
+                        { id: 'premise', label: 'Story Premise', icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> },
+                        { id: 'voiceover', label: 'Direct Script', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
+                      ]}
+                      activeId={inputMode}
+                      onChange={(id) => setInputMode(id as any)}
+                      layoutId="dual-workflow-indicator"
+                      indicatorClassName={
+                        inputMode === 'premise'
+                          ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/30'
+                          : 'bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/30'
+                      }
+                    />
+                    <span className="text-[11px] font-mono text-slate-400 pr-3 hidden sm:inline">
+                      {inputMode === 'premise' ? 'Synthesize from premise' : 'Exact words locked'}
+                    </span>
+                  </div>
+
+                  {inputMode === 'voiceover' ? (
+                    <div className="space-y-3 bg-black/40 p-4 rounded-2xl border border-amber-500/25">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+                          <Mic className="w-3.5 h-3.5 text-amber-300" />
+                          <span>Voiceover Narration Script</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <AnimatedButton
+                            type="button"
+                            variant={isDictating ? 'danger' : 'secondary'}
+                            onClick={toggleDictation}
+                            icon={<Mic className={`w-3 h-3 ${isDictating ? 'text-white' : 'text-rose-400'}`} />}
+                            className="text-[11px] px-2.5 py-1"
+                          >
+                            {isDictating ? 'Listening...' : 'Mic Dictation'}
+                          </AnimatedButton>
+                          {isDictating && <SoundWaveVisualizer isPlaying={true} barCount={6} color="from-rose-400 to-amber-400" />}
+                        </div>
+                      </div>
+                      <textarea
+                        rows={6}
+                        value={sharedScript}
+                        onChange={(e) => setSharedScript(e.target.value)}
+                        placeholder="Paste or dictate your full voiceover script here..."
+                        className="w-full bg-black/60 border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 leading-relaxed"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <label className="text-xs font-semibold text-slate-200">Story Premise / Subject Matter</label>
+                      <textarea
+                        rows={3}
+                        value={topic}
+                        onChange={(e) => setTopic(e.target.value)}
+                        placeholder="Type a premise (e.g. David vs Goliath: The Valley of Elah...)"
+                        className="w-full bg-black/50 border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
+                      />
+                      {/* Inspirations */}
+                      <div className="flex flex-wrap items-center gap-1 pt-1">
+                        {SAMPLE_PROMPTS.slice(0, 3).map((p) => (
+                          <button
+                            key={p}
+                            type="button"
+                            onClick={() => setTopic(p)}
+                            className="text-[10px] bg-black/40 hover:bg-white/10 text-slate-400 hover:text-cyan-300 px-2.5 py-0.5 rounded-lg border border-white/[0.08] truncate max-w-[200px]"
+                          >
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {inputMode === 'premise' && (
+                    <DurationSlider
+                      value={duration}
+                      onChange={setDuration}
+                      disabled={isGenerating}
+                    />
+                  )}
+
+                  <NicheSelector
+                    selectedNicheId={nicheId}
+                    onSelectNiche={setNicheId}
+                    disabled={isGenerating}
+                  />
+
+                  {/* Diffusion Target & Generate Buttons */}
+                  <div className="pt-3 border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-slate-400">Diffusion:</span>
+                      <div className="inline-flex rounded-lg bg-black/40 p-0.5 border border-white/[0.08]">
+                        {IMAGE_MODELS.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setImageModel(m.id as any)}
+                            className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all ${
+                              imageModel === m.id ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/30' : 'text-slate-400'
+                            }`}
+                          >
+                            {m.name.split(' ')[0]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <AnimatedButton
+                        type="button"
+                        variant="secondary"
+                        disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
+                        onClick={() => handleGenerate(true)}
+                        icon={<Zap className="w-3.5 h-3.5 text-emerald-400" />}
+                        className="text-xs px-3 py-2"
+                      >
+                        Offline (0 API)
+                      </AnimatedButton>
+
+                      <AnimatedButton
+                        type="button"
+                        variant={isDirectVoiceover ? 'cyber' : 'primary'}
+                        shimmer={true}
+                        disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
+                        onClick={() => handleGenerate(false)}
+                        icon={<Sparkles className="w-3.5 h-3.5 text-cyan-200" />}
+                        className="text-xs px-4 py-2 font-bold"
+                      >
+                        {isGenerating ? 'Synthesizing...' : `Generate Storyboard (${estimatedScenes} Scenes)`}
+                      </AnimatedButton>
+                    </div>
+                  </div>
+                </section>
+              </Card3D>
+
+              {/* Progress Tracker */}
+              <ProgressTracker
+                stage={progress.stage}
+                percent={progress.percent}
+                message={progress.message}
+                isGenerating={isGenerating}
+              />
+
+              {/* Generated Storyboard Output */}
+              {storyboard && (
+                <div className="space-y-4">
+                  <div className="bg-[#030714]/90 border border-cyan-500/30 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl backdrop-blur-xl">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 uppercase font-bold">
+                          {storyboard.niche}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono">
+                          {storyboard.total_scenes} scenes • {storyboard.total_duration}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-white mt-1">{storyboard.title}</h3>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <AnimatedButton
+                        type="button"
+                        variant="primary"
+                        onClick={() => setIsExportOpen(true)}
+                        icon={<Download className="w-3.5 h-3.5" />}
+                        className="text-xs px-3 py-1.5"
+                      >
+                        Export
+                      </AnimatedButton>
+                    </div>
+                  </div>
+
+                  {/* Scene Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {storyboard.scenes.map((scene) => (
+                      <SceneCard key={scene.scene_number} scene={scene} />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column (Col 8-12): Synchronized Voiceover Studio */}
+            <div className="xl:col-span-5 space-y-6">
+              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-4 h-4 text-amber-300" />
+                  <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
+                    Voiceover & Audio Engine
+                  </h2>
+                </div>
+                <span className="text-[11px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                  Voice: {selectedVoice.name}
+                </span>
+              </div>
+
+              {/* Voiceover Studio Component */}
+              <VoiceoverStudio
+                initialScript={sharedScript}
+                initialTopic={storyboard?.title || topic}
+                currentVoice={selectedVoice}
+                onScriptChange={(script) => setSharedScript(script)}
+                onVoiceChange={(v) => setSelectedVoice(v)}
+                onSendToArchitect={handleSendToArchitect}
+              />
+            </div>
+          </div>
+        ) : studioLayout === 'voiceover' ? (
+          /* ======================================================== */
+          /* 🎙️ FULL-WIDTH VOICEOVER STUDIO FOCUS                      */
+          /* ======================================================== */
+          <motion.div
+            key="voiceover-focus"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-6"
           >
             <VoiceoverStudio
-              initialScript={storyboard?.full_script}
+              initialScript={storyboard?.full_script || sharedScript}
               initialTopic={storyboard?.title || topic}
-              onSendToArchitect={(script) => {
-                setVoiceoverText(script);
-                setInputMode('voiceover');
-                setActivePlatformTab('architect');
-              }}
+              currentVoice={selectedVoice}
+              onScriptChange={(script) => setSharedScript(script)}
+              onVoiceChange={(v) => setSelectedVoice(v)}
+              onSendToArchitect={handleSendToArchitect}
             />
-          </motion.main>
+          </motion.div>
         ) : (
-          <motion.main
-            key="architect-view"
-            initial={{ opacity: 0, x: -25 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 25 }}
-            transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8 relative z-10"
+          /* ======================================================== */
+          /* 🎬 FULL-WIDTH PROMPT ARCHITECT FOCUS                      */
+          /* ======================================================== */
+          <motion.div
+            key="architect-focus"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-8"
           >
             {/* Creator Control Studio */}
-            <Card3D maxTilt={4} glare={false}>
-              <section className="glass-panel rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden">
+            <Card3D maxTilt={3} glare={false}>
+              <section className="bg-[#030714]/85 border border-white/[0.07] rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden backdrop-blur-2xl shadow-2xl">
                 {/* Section Heading & Diffusion Target */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
                   <div>
@@ -327,7 +611,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-400">Diffusion Target:</span>
-                    <div className="inline-flex rounded-xl bg-black/40 p-1 border border-white/[0.08]">
+                    <div className="inline-flex rounded-xl bg-black/50 p-1 border border-white/[0.08]">
                       {IMAGE_MODELS.map((m) => (
                         <button
                           key={m.id}
@@ -347,7 +631,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                 </div>
 
                 {/* Sliding Workflow Mode Selector */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 bg-black/40 border border-white/[0.08] rounded-2xl backdrop-blur-md">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 bg-black/50 border border-white/[0.08] rounded-2xl backdrop-blur-md">
                   <SlideTabs
                     tabs={[
                       { id: 'premise', label: 'Story Premise Mode', icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> },
@@ -355,7 +639,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     ]}
                     activeId={inputMode}
                     onChange={(id) => setInputMode(id as any)}
-                    layoutId="workflow-mode-indicator"
+                    layoutId="workflow-mode-indicator-focus"
                     indicatorClassName={
                       inputMode === 'premise'
                         ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/30'
@@ -378,7 +662,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -12 }}
                       transition={{ duration: 0.2 }}
-                      className="bg-[#0B111F]/90 border border-amber-500/25 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden"
+                      className="bg-[#040A18]/90 border border-amber-500/25 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden"
                     >
                       {/* Segment Header */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
@@ -415,7 +699,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                             onClick={async () => {
                               try {
                                 const text = await navigator.clipboard.readText();
-                                if (text) setVoiceoverText((prev) => (prev ? prev + '\n\n' + text : text));
+                                if (text) setSharedScript((prev) => (prev ? prev + '\n\n' + text : text));
                               } catch {
                                 alert('Clipboard access denied. Please paste manually into the editor.');
                               }
@@ -428,7 +712,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                             type="button"
                             variant="secondary"
                             onClick={() =>
-                              setVoiceoverText(
+                              setSharedScript(
                                 `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.\n\nA young shepherd named David, bearing grain for his brothers, refused to surrender faith to fear.\n\nReaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
                               )
                             }
@@ -439,7 +723,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                           <AnimatedButton
                             type="button"
                             variant="ghost"
-                            onClick={() => setVoiceoverText('')}
+                            onClick={() => setSharedScript('')}
                             className="text-slate-400 hover:text-rose-300"
                           >
                             Clear
@@ -450,36 +734,31 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                       {/* Large Script Textarea */}
                       <textarea
                         rows={7}
-                        value={voiceoverText}
-                        onChange={(e) => setVoiceoverText(e.target.value)}
+                        value={sharedScript}
+                        onChange={(e) => setSharedScript(e.target.value)}
                         disabled={isGenerating}
-                        placeholder="Paste, type, or dictate your full voiceover script here... (e.g., In the deep trenches of the Pacific, sunlight fades into total silence...)"
-                        className="w-full bg-black/40 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#B4532A] transition-all font-sans leading-relaxed resize-y shadow-inner"
+                        placeholder="Paste, type, or dictate your full voiceover script here..."
+                        className="w-full bg-black/50 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#B4532A] transition-all font-sans leading-relaxed resize-y shadow-inner"
                       />
 
                       {/* 3D Animated Stat Cubes */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                        <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center transition-transform hover:scale-[1.02]">
+                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-mono">Word Count</div>
                           <div className="text-base font-bold text-white font-mono mt-0.5">{inputWords} words</div>
                         </div>
-                        <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center transition-transform hover:scale-[1.02]">
+                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-mono">Spoken Runtime</div>
                           <div className="text-base font-bold text-amber-300 font-mono mt-0.5">~{calculatedDuration}s</div>
                         </div>
-                        <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center transition-transform hover:scale-[1.02]">
+                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-mono">Scene Budget</div>
                           <div className="text-base font-bold text-cyan-300 font-mono mt-0.5">{estimatedScenes} scenes</div>
                         </div>
-                        <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center transition-transform hover:scale-[1.02]">
+                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
                           <div className="text-[10px] text-slate-400 uppercase font-mono">Pacing Target</div>
                           <div className="text-base font-bold text-emerald-400 font-mono mt-0.5">~7.5s / scene</div>
                         </div>
-                      </div>
-
-                      <div className="text-[11px] text-slate-400 flex items-center justify-between pt-1">
-                        <span>💡 Your voiceover words remain untouched; the engine partitions them into optimal retention scenes with {imageModel.toUpperCase()} diffusion prompts.</span>
-                        <span className="font-mono text-emerald-400 text-[10px] hidden sm:inline">Strict 4–8s bounds</span>
                       </div>
                     </motion.div>
                   ) : (
@@ -502,7 +781,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                         onChange={(e) => setTopic(e.target.value)}
                         disabled={isGenerating}
                         placeholder="Type a story premise (e.g., David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith)"
-                        className="w-full bg-black/40 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans leading-relaxed shadow-inner"
+                        className="w-full bg-black/50 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans leading-relaxed shadow-inner"
                       />
                       <div className="flex flex-wrap items-center gap-1.5 pt-1">
                         <span className="text-[11px] text-slate-400 font-medium mr-1">Inspirations:</span>
@@ -519,7 +798,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                               else if (p.includes('Dyatlov')) setNicheId('forgotten-mysteries');
                             }}
                             disabled={isGenerating}
-                            className="text-[11px] bg-black/40 hover:bg-white/10 text-slate-400 hover:text-cyan-300 px-3 py-1 rounded-lg border border-white/[0.08] transition-colors truncate max-w-[280px]"
+                            className="text-[11px] bg-black/50 hover:bg-white/10 text-slate-400 hover:text-cyan-300 px-3 py-1 rounded-lg border border-white/[0.08] transition-colors truncate max-w-[280px]"
                           >
                             {p}
                           </button>
@@ -545,7 +824,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                   disabled={isGenerating}
                 />
 
-                {/* Tone & Perspective Controls */}
+                {/* Tone Controls */}
                 <div className="space-y-3 pt-2">
                   <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                     <Compass className="w-4 h-4 text-emerald-400" />
@@ -560,8 +839,8 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                         onClick={() => setTone(t.id)}
                         className={`p-3.5 rounded-2xl border text-left transition-all ${
                           tone === t.id
-                            ? 'bg-gradient-to-b from-[#132238] to-[#0D1627] border-emerald-400 ring-1 ring-emerald-400/60 shadow-lg scale-[1.02]'
-                            : 'bg-black/40 border-white/[0.08] hover:border-slate-500 hover:bg-white/5'
+                            ? 'bg-gradient-to-b from-[#08152B] to-[#040B17] border-emerald-400 ring-1 ring-emerald-400/60 shadow-lg scale-[1.02]'
+                            : 'bg-black/50 border-white/[0.08] hover:border-slate-500 hover:bg-white/5'
                         }`}
                       >
                         <div className="text-xs font-bold text-white mb-0.5">{t.label}</div>
@@ -584,7 +863,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     </span>
                     <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
                       <UserCheck className="w-3 h-3" />
-                      Character Consistency Locked
+                      Character Locked
                     </span>
                   </div>
 
@@ -592,19 +871,19 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     <AnimatedButton
                       type="button"
                       variant="secondary"
-                      disabled={isGenerating || (isDirectVoiceover ? !voiceoverText.trim() : !topic.trim())}
+                      disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
                       onClick={() => handleGenerate(true)}
                       icon={<Zap className="w-4 h-4 text-emerald-400" />}
                       className="flex-1 sm:flex-none"
                     >
-                      Offline Generator (0 API)
+                      Offline (0 API)
                     </AnimatedButton>
 
                     <AnimatedButton
                       type="button"
                       variant={isDirectVoiceover ? 'cyber' : 'primary'}
                       shimmer={true}
-                      disabled={isGenerating || (isDirectVoiceover ? !voiceoverText.trim() : !topic.trim())}
+                      disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
                       onClick={() => handleGenerate(false)}
                       icon={
                         isDirectVoiceover ? (
@@ -618,7 +897,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                       className="flex-1 sm:flex-none text-xs sm:text-sm px-6 py-3 font-bold"
                     >
                       {isGenerating
-                        ? 'Synthesizing Production Storyboard...'
+                        ? 'Synthesizing Storyboard...'
                         : isDirectVoiceover
                         ? `Generate Storyboard from Voiceover (${estimatedScenes} Scenes)`
                         : engineMode === 'offline'
@@ -630,7 +909,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
               </section>
             </Card3D>
 
-            {/* Real-Time Progress Tracker */}
+            {/* Progress Tracker */}
             <ProgressTracker
               stage={progress.stage}
               percent={progress.percent}
@@ -647,13 +926,13 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                 className="space-y-6"
               >
                 {/* Storyboard Header Card */}
-                <div className="glass-panel-glow rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="bg-[#030714]/90 border border-cyan-500/30 rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-[11px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 font-bold">
                         {storyboard.niche}
                       </span>
-                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-black/40 border border-white/[0.08] text-slate-300">
+                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-black/50 border border-white/[0.08] text-slate-300">
                         {storyboard.tone}
                       </span>
                       <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
@@ -673,10 +952,10 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     <AnimatedButton
                       type="button"
                       variant="cyber"
-                      onClick={() => setActivePlatformTab('voiceover')}
+                      onClick={() => setStudioLayout('voiceover')}
                       icon={<Mic className="w-3.5 h-3.5 text-amber-300" />}
                     >
-                      Voiceover Studio
+                      Audition in Voiceover Studio
                     </AnimatedButton>
 
                     <AnimatedButton
@@ -690,9 +969,9 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                   </div>
                 </div>
 
-                {/* Master Outline Accordion (if chunked generation) */}
+                {/* Master Outline Accordion */}
                 {storyboard.outline && (
-                  <div className="glass-panel rounded-2xl overflow-hidden">
+                  <div className="bg-[#030714]/85 border border-white/[0.08] rounded-2xl overflow-hidden">
                     <button
                       type="button"
                       onClick={() => setShowOutline(!showOutline)}
@@ -706,11 +985,11 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     </button>
 
                     {showOutline && (
-                      <div className="p-5 border-t border-white/[0.08] space-y-4 bg-black/40">
+                      <div className="p-5 border-t border-white/[0.08] space-y-4 bg-black/50">
                         <p className="text-xs text-slate-300 italic">{storyboard.outline.premise}</p>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                           {storyboard.outline.acts.map((act) => (
-                            <div key={act.act_number} className="bg-black/40 p-4 rounded-xl border border-white/[0.08] space-y-2">
+                            <div key={act.act_number} className="bg-black/50 p-4 rounded-xl border border-white/[0.08] space-y-2">
                               <h5 className="text-xs font-bold text-cyan-300">{act.act_title}</h5>
                               <ul className="space-y-1.5">
                                 {act.chapters.map((chap) => (
@@ -740,9 +1019,8 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                     layoutId="storyboard-subtab-indicator"
                   />
 
-                  {/* View switcher when in timeline tab */}
                   {activeTab === 'timeline' && (
-                    <div className="flex items-center bg-black/40 border border-white/[0.08] p-1 rounded-xl">
+                    <div className="flex items-center bg-black/50 border border-white/[0.08] p-1 rounded-xl">
                       <button
                         type="button"
                         onClick={() => setViewMode('cards')}
@@ -777,7 +1055,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                 {activeTab === 'voiceover' && (
                   <FullVoiceoverScript
                     storyboard={storyboard}
-                    onOpenInVoiceoverStudio={() => setActivePlatformTab('voiceover')}
+                    onOpenInVoiceoverStudio={() => setStudioLayout('voiceover')}
                   />
                 )}
 
@@ -802,9 +1080,9 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                 )}
               </motion.section>
             )}
-          </motion.main>
+          </motion.div>
         )}
-      </AnimatePresence>
+      </main>
 
       {/* Export Modal */}
       {storyboard && (

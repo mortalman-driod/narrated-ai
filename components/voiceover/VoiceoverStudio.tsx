@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Sliders, X, Volume2, Gauge } from 'lucide-react';
+import { Sliders, X, Volume2, Gauge, Mic, Sparkles, FolderUp, Film, Check, Radio } from 'lucide-react';
 import { VoiceProfile, PronunciationRule, RenderJob, AudioChunk } from '@/lib/voiceover/types';
 import { LAUNCH_VOICES } from '@/lib/voiceover/voices';
 import { DEFAULT_PRONUNCIATION_LEXICON, applyPronunciationLexicon } from '@/lib/voiceover/lexicon';
@@ -10,17 +10,27 @@ import { CastingRoom } from './CastingRoom';
 import { PersistentPlayer } from './PersistentPlayer';
 import { PronunciationModal } from './PronunciationModal';
 import { RenderConsole } from './RenderConsole';
+import { SlideTabs } from '@/components/ui/SlideTabs';
+import { AnimatedButton } from '@/components/ui/AnimatedButton';
+import { SoundWaveVisualizer } from '@/components/ui/SoundWaveVisualizer';
+import { Card3D } from '@/components/ui/Card3D';
 
 interface VoiceoverStudioProps {
   initialScript?: string;
   initialTopic?: string;
   onSendToArchitect?: (script: string) => void;
+  onScriptChange?: (script: string) => void;
+  onVoiceChange?: (voice: VoiceProfile) => void;
+  currentVoice?: VoiceProfile;
 }
 
 export const VoiceoverStudio: React.FC<VoiceoverStudioProps> = ({
   initialScript = '',
   initialTopic = 'Untitled Voiceover Project',
-  onSendToArchitect
+  onSendToArchitect,
+  onScriptChange,
+  onVoiceChange,
+  currentVoice
 }) => {
   // Navigation & Sub-views
   const [activeView, setActiveView] = useState<'casting' | 'editor' | 'render'>('casting');
@@ -34,16 +44,31 @@ A young shepherd named David, sent with provisions for his brothers, heard the g
 Stepping into the dry brook, David selected five smooth stones. With only his sling and unwavering faith, he advanced into history.`
   );
 
+  // Synchronize scriptText when initialScript changes from parent
+  useEffect(() => {
+    if (initialScript && initialScript !== scriptText) {
+      setScriptText(initialScript);
+    }
+  }, [initialScript]);
+
+  // Synchronize projectName when initialTopic changes from parent
+  useEffect(() => {
+    if (initialTopic && initialTopic !== projectName) {
+      setProjectName(initialTopic);
+    }
+  }, [initialTopic]);
+
   // Voice Selection & Audio State
-  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(LAUNCH_VOICES[0]); // Adaeze
+  const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(currentVoice || LAUNCH_VOICES[0]);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [activePlayingVoiceId, setActivePlayingVoiceId] = useState<string | null>(null);
   const [currentSpokenSnippet, setCurrentSpokenSnippet] = useState<string>('');
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [playerDuration, setPlayerDuration] = useState<number>(10);
   const [isPlayerOpen, setIsPlayerOpen] = useState<boolean>(false);
+  const [isDictating, setIsDictating] = useState<boolean>(false);
 
-  // Pronunciation Lexicon & Delivery Settings (Synchronized from voiceover-studio CONTRACT.md)
+  // Pronunciation Lexicon & Delivery Settings
   const [isLexiconOpen, setIsLexiconOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [lexiconRules, setLexiconRules] = useState<PronunciationRule[]>(DEFAULT_PRONUNCIATION_LEXICON);
@@ -60,6 +85,16 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  const handleScriptChange = (newText: string) => {
+    setScriptText(newText);
+    onScriptChange?.(newText);
+  };
+
+  const handleVoiceSelect = (voice: VoiceProfile) => {
+    setSelectedVoice(voice);
+    onVoiceChange?.(voice);
+  };
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -68,7 +103,7 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
     reader.onload = (event) => {
       const text = event.target?.result as string;
       if (text) {
-        setScriptText(text);
+        handleScriptChange(text);
         if (!projectName || projectName === 'Untitled Voiceover Project' || projectName.includes('David vs Goliath')) {
           const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
           setProjectName(cleanName);
@@ -76,8 +111,49 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
       }
     };
     reader.readAsText(file);
-    // Reset input so same file can be selected again
     e.target.value = '';
+  };
+
+  // Mic dictation using Web Speech API
+  const toggleDictation = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please type or paste your script.');
+      return;
+    }
+
+    if (isDictating) {
+      setIsDictating(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsDictating(true);
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (transcript) {
+          const updated = scriptText ? scriptText.trim() + ' ' + transcript.trim() : transcript.trim();
+          handleScriptChange(updated);
+        }
+      };
+      recognition.onerror = () => setIsDictating(false);
+      recognition.onend = () => setIsDictating(false);
+      recognition.start();
+    } catch {
+      setIsDictating(false);
+    }
   };
 
   // Update chunks when script or settings change
@@ -130,7 +206,6 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
     utterance.rate = Math.max(0.5, Math.min(2.0, voice.rate * speed));
 
     const voices = window.speechSynthesis.getVoices();
-    // Prioritize correct gender in fallback
     const genderMatch = voices.find(
       (v) =>
         v.lang.startsWith('en') &&
@@ -156,7 +231,7 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
     window.speechSynthesis.speak(utterance);
   };
 
-  // Primary Speech Handler: Plays authentic broadcast Neural MP3 via /api/tts
+  // Primary Speech Handler
   const playSpeech = async (text: string, voice: VoiceProfile) => {
     handleStopAudio();
 
@@ -169,7 +244,6 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
     setCurrentTime(0);
 
     try {
-      console.log(`[VoiceoverStudio] Requesting neural audio for ${voice.name} (${voice.categoryLabel})...`);
       const response = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,12 +311,16 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
 
     for (let i = 0; i < total; i++) {
       updatedChunks[i].status = 'synthesizing';
-      setRenderJob((prev) => prev ? {
-        ...prev,
-        chunks: [...updatedChunks],
-        progressPercent: Math.round(((i + 0.3) / total) * 100),
-        status: 'rendering'
-      } : null);
+      setRenderJob((prev) =>
+        prev
+          ? {
+              ...prev,
+              chunks: [...updatedChunks],
+              progressPercent: Math.round(((i + 0.3) / total) * 100),
+              status: 'rendering'
+            }
+          : null
+      );
 
       try {
         const processedChunkText = applyPronunciationLexicon(updatedChunks[i].text, lexiconRules);
@@ -265,13 +343,17 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
       }
 
       updatedChunks[i].status = 'completed';
-      setRenderJob((prev) => prev ? {
-        ...prev,
-        chunks: [...updatedChunks],
-        progressPercent: Math.round(((i + 1) / total) * 100),
-        etaSeconds: Math.max(0, Math.round((total - (i + 1)) * 1.2)),
-        status: i === total - 1 ? 'completed' : 'rendering'
-      } : null);
+      setRenderJob((prev) =>
+        prev
+          ? {
+              ...prev,
+              chunks: [...updatedChunks],
+              progressPercent: Math.round(((i + 1) / total) * 100),
+              etaSeconds: Math.max(0, Math.round((total - (i + 1)) * 1.2)),
+              status: i === total - 1 ? 'completed' : 'rendering'
+            }
+          : null
+      );
     }
 
     setIsRendering(false);
@@ -304,84 +386,68 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
     }
   };
 
+  const wordCount = scriptText.split(/\s+/).filter(Boolean).length;
+  const estimatedSeconds = Math.round((wordCount / (140 * speed)) * 60);
+
   return (
-    <div className="bg-[#FAF7F2] text-[#1C1917] min-h-[85vh] rounded-2xl p-6 sm:p-10 space-y-8 border border-[#E8E2D9] shadow-sm font-sans">
+    <div className="bg-[#02050E]/90 text-slate-100 min-h-[85vh] rounded-3xl p-6 sm:p-8 space-y-6 border border-white/[0.08] shadow-2xl backdrop-blur-2xl">
       {/* Studio Top Navigation Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E8E2D9] pb-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-[4px] bg-[#B4532A]/10 text-[#B4532A] font-bold border border-[#B4532A]/30">
-              Voiceover Studio v1.0
+            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-bold border border-amber-500/30 shadow-sm">
+              Voiceover Studio Suite
             </span>
-            <span className="text-[11px] font-mono text-[#4D7C0F]">
-              ● 100% Local / Zero Cloud API
+            <span className="text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>100% Neural / Zero Cloud API</span>
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#1C1917] tracking-tight mt-1">
-            Editorial Voice Production
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1 flex items-center gap-2">
+            <span>Broadcast Voice Production</span>
+            <Sparkles className="w-5 h-5 text-amber-400" />
           </h1>
-          <p className="text-xs text-[#6B6259] mt-0.5">
-            Turn long-form scripts into broadcast-quality narration with Nigerian & international voice talents.
+          <p className="text-xs text-slate-400 mt-0.5">
+            Synchronized long-form audio narration with authentic Nigerian & global voice actors.
           </p>
         </div>
 
-        {/* View Switcher Tabs */}
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-[6px] bg-white p-1 border border-[#E8E2D9]">
-            <button
-              type="button"
-              onClick={() => setActiveView('casting')}
-              className={`px-3.5 py-1.5 rounded-[4px] text-xs font-semibold transition-all ${
-                activeView === 'casting'
-                  ? 'bg-[#B4532A] text-white shadow-sm'
-                  : 'text-[#6B6259] hover:text-[#1C1917]'
-              }`}
-            >
-              The Casting Room ({LAUNCH_VOICES.length})
-            </button>
+        {/* View Switcher Tabs & Tools */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Sliding Navigation Tabs */}
+          <SlideTabs
+            tabs={[
+              { id: 'casting', label: `Casting Room (${LAUNCH_VOICES.length})`, icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> },
+              { id: 'editor', label: 'Script & Cadence', icon: <Volume2 className="w-3.5 h-3.5 text-cyan-400" /> },
+              { id: 'render', label: 'Production Console', icon: <Radio className="w-3.5 h-3.5 text-emerald-400" /> }
+            ]}
+            activeId={activeView}
+            onChange={(id) => setActiveView(id as any)}
+            layoutId="voiceover-nav-indicator"
+            indicatorClassName="bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/30"
+          />
 
-            <button
-              type="button"
-              onClick={() => setActiveView('editor')}
-              className={`px-3.5 py-1.5 rounded-[4px] text-xs font-semibold transition-all ${
-                activeView === 'editor'
-                  ? 'bg-[#B4532A] text-white shadow-sm'
-                  : 'text-[#6B6259] hover:text-[#1C1917]'
-              }`}
-            >
-              Script & Cadence
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveView('render')}
-              className={`px-3.5 py-1.5 rounded-[4px] text-xs font-semibold transition-all ${
-                activeView === 'render'
-                  ? 'bg-[#B4532A] text-white shadow-sm'
-                  : 'text-[#6B6259] hover:text-[#1C1917]'
-              }`}
-            >
-              Production Console
-            </button>
-          </div>
-
-          <button
+          {/* Lexicon Trigger */}
+          <AnimatedButton
             type="button"
+            variant="secondary"
             onClick={() => setIsLexiconOpen(true)}
-            className="px-3 py-1.5 rounded-[6px] border border-[#E8E2D9] bg-white hover:border-[#6B6259] text-xs font-semibold text-[#1C1917] transition-colors"
+            className="text-xs px-3 py-1.5"
           >
             Lexicon ({lexiconRules.length})
-          </button>
+          </AnimatedButton>
 
-          <button
+          {/* Settings Trigger */}
+          <AnimatedButton
             type="button"
+            variant="secondary"
             onClick={() => setIsSettingsOpen(true)}
-            className="px-3 py-1.5 rounded-[6px] border border-[#E8E2D9] bg-white hover:border-[#6B6259] text-xs font-semibold text-[#1C1917] transition-colors flex items-center gap-1.5"
+            icon={<Sliders className="w-3.5 h-3.5 text-amber-400" />}
+            className="text-xs px-3 py-1.5"
             title="Configure pause timings, speech speed, and broadcast loudness"
           >
-            <Sliders className="w-3.5 h-3.5 text-[#B4532A]" />
-            <span>Audio Settings</span>
-          </button>
+            Audio Settings
+          </AnimatedButton>
         </div>
       </div>
 
@@ -390,7 +456,7 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
         <CastingRoom
           selectedVoice={selectedVoice}
           onSelectVoice={(voice) => {
-            setSelectedVoice(voice);
+            handleVoiceSelect(voice);
             setActiveView('editor');
           }}
           onPlaySample={(text, voice) => playSpeech(text, voice)}
@@ -399,110 +465,153 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
         />
       )}
 
-      {/* SUB-VIEW 2: Script Editor */}
+      {/* SUB-VIEW 2: Script & Cadence Editor */}
       {activeView === 'editor' && (
-        <div className="bg-white border border-[#E8E2D9] rounded-[8px] p-6 shadow-sm space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#E8E2D9] pb-4">
-            <div>
-              <span className="text-[11px] font-mono uppercase tracking-widest text-[#B4532A] font-semibold">
-                Narrative Blueprint
-              </span>
-              <h3 className="text-xl font-serif font-bold text-[#1C1917]">
-                Script & Teleprompter
-              </h3>
-              <p className="text-xs text-[#6B6259]">
-                Narrator Assigned:{' '}
-                <strong className="text-[#B4532A]">{selectedVoice.name}</strong> ({selectedVoice.accent})
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => playSpeech(scriptText.slice(0, 180), selectedVoice)}
-                className="px-3.5 py-1.5 rounded-[6px] border border-[#1C1917] text-xs font-semibold text-[#1C1917] hover:bg-[#FAF7F2] transition-colors"
-              >
-                ▶ Listen First Passage
-              </button>
-
-              {onSendToArchitect && (
-                <button
-                  type="button"
-                  onClick={() => onSendToArchitect(scriptText)}
-                  className="px-3.5 py-1.5 rounded-[6px] bg-[#1C1917] hover:bg-black text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors shadow-sm"
-                  title="Send this script to Storyboard Architect to generate visual scenes"
-                >
-                  ⚡ Send to Storyboard Architect
-                </button>
-              )}
-
-              <button
-                type="button"
-                onClick={() => setActiveView('render')}
-                className="px-4 py-1.5 rounded-[6px] bg-[#B4532A] hover:bg-[#9A4524] text-white text-xs font-semibold transition-colors"
-              >
-                Proceed to Render Console →
-              </button>
-            </div>
-          </div>
-
-          {/* Project Title Input & File Import */}
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[#1C1917]">Project / Story Name</label>
+        <Card3D maxTilt={2} glare={false}>
+          <div className="bg-[#030714]/90 border border-white/[0.08] rounded-2xl p-6 sm:p-7 shadow-2xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
               <div>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".txt,.md,.text"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                />
-                <button
+                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/25">
+                  Synchronized Teleprompter
+                </span>
+                <h3 className="text-xl font-bold text-white mt-1">
+                  Script & Acoustic Cadence
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Assigned Narrator:{' '}
+                  <strong className="text-amber-300">{selectedVoice.name}</strong> ({selectedVoice.accent}) •{' '}
+                  <span className="text-emerald-400 font-mono">Paced at ~140 WPM</span>
+                </p>
+              </div>
+
+              {/* Action Toolbar */}
+              <div className="flex flex-wrap items-center gap-2">
+                <AnimatedButton
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs px-2.5 py-1 rounded-[4px] border border-[#B4532A] text-[#B4532A] hover:bg-[#B4532A]/10 font-medium transition-colors flex items-center gap-1.5"
-                  title="Import a .txt or .md script from your computer"
+                  variant="secondary"
+                  onClick={() => playSpeech(scriptText.slice(0, 180), selectedVoice)}
+                  icon={<Volume2 className="w-3.5 h-3.5 text-amber-300" />}
+                  className="text-xs px-3 py-1.5"
                 >
-                  <span>📁 Import Script (.txt, .md)</span>
-                </button>
+                  Listen Opening
+                </AnimatedButton>
+
+                {onSendToArchitect && (
+                  <AnimatedButton
+                    type="button"
+                    variant="cyber"
+                    shimmer={true}
+                    onClick={() => onSendToArchitect(scriptText)}
+                    icon={<Film className="w-3.5 h-3.5 text-cyan-300" />}
+                    className="text-xs px-3.5 py-1.5 font-bold"
+                    title="Send this script to Storyboard Architect to generate synchronized visual scenes"
+                  >
+                    Sync to Storyboard Architect
+                  </AnimatedButton>
+                )}
+
+                <AnimatedButton
+                  type="button"
+                  variant="primary"
+                  onClick={() => setActiveView('render')}
+                  className="text-xs px-4 py-1.5 font-bold"
+                >
+                  Proceed to Console →
+                </AnimatedButton>
               </div>
             </div>
-            <input
-              type="text"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-              className="w-full text-sm font-serif font-bold p-2.5 rounded-[6px] border border-[#E8E2D9] bg-[#FAF7F2] text-[#1C1917]"
-            />
-          </div>
 
-          {/* Script Text Area */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-[#6B6259]">
-              <span>Script Text (Paragraphs create natural 600ms pauses)</span>
-              <span className="font-mono">
-                {scriptText.split(/\s+/).filter(Boolean).length} words • ~
-                {Math.round((scriptText.split(/\s+/).filter(Boolean).length / 140) * 60)}s audio
-              </span>
+            {/* Project Title Input & File Import */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-200">Project / Storyline Title</label>
+                <div>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".txt,.md,.text"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <AnimatedButton
+                    type="button"
+                    variant="ghost"
+                    onClick={() => fileInputRef.current?.click()}
+                    icon={<FolderUp className="w-3.5 h-3.5 text-amber-400" />}
+                    className="text-xs px-2.5 py-1 text-slate-300 hover:text-white"
+                  >
+                    Import .txt / .md
+                  </AnimatedButton>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+                className="w-full text-sm font-sans font-bold p-3 rounded-xl border border-white/[0.08] bg-black/50 text-white focus:outline-none focus:border-amber-400 shadow-inner"
+              />
             </div>
-            <textarea
-              rows={12}
-              value={scriptText}
-              onChange={(e) => setScriptText(e.target.value)}
-              className="w-full p-4 rounded-[6px] border border-[#E8E2D9] bg-white font-mono text-xs leading-relaxed text-[#1C1917] focus:outline-none focus:border-[#B4532A] shadow-inner"
-            />
+
+            {/* Script Text Area with Live Dictation & Counter */}
+            <div className="space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 gap-2">
+                <div className="flex items-center gap-3">
+                  <span>Script Text (Paragraphs form 600ms boundary pauses)</span>
+                  <AnimatedButton
+                    type="button"
+                    variant={isDictating ? 'danger' : 'secondary'}
+                    onClick={toggleDictation}
+                    icon={<Mic className={`w-3 h-3 ${isDictating ? 'text-white' : 'text-rose-400'}`} />}
+                    className="text-[11px] px-2.5 py-1"
+                  >
+                    {isDictating ? 'Listening...' : 'Dictate with Mic'}
+                  </AnimatedButton>
+                  {isDictating && <SoundWaveVisualizer isPlaying={true} barCount={6} color="from-rose-400 to-amber-400" />}
+                </div>
+                <span className="font-mono text-amber-300">
+                  {wordCount} words • ~{estimatedSeconds}s spoken audio
+                </span>
+              </div>
+              <textarea
+                rows={12}
+                value={scriptText}
+                onChange={(e) => handleScriptChange(e.target.value)}
+                placeholder="Type, paste, or dictate your voiceover script here..."
+                className="w-full p-4 rounded-2xl border border-white/[0.08] bg-black/60 font-sans text-sm leading-relaxed text-white focus:outline-none focus:border-amber-400 shadow-inner resize-y"
+              />
+            </div>
+
+            {/* Stat Pill Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
+              <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center">
+                <div className="text-[10px] text-slate-400 uppercase font-mono">Word Count</div>
+                <div className="text-base font-bold text-white font-mono mt-0.5">{wordCount}</div>
+              </div>
+              <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center">
+                <div className="text-[10px] text-slate-400 uppercase font-mono">Spoken Duration</div>
+                <div className="text-base font-bold text-amber-300 font-mono mt-0.5">~{estimatedSeconds}s</div>
+              </div>
+              <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center">
+                <div className="text-[10px] text-slate-400 uppercase font-mono">Assigned Voice</div>
+                <div className="text-sm font-bold text-cyan-300 truncate mt-0.5">{selectedVoice.name}</div>
+              </div>
+              <div className="bg-black/40 border border-white/[0.08] rounded-xl p-3 text-center">
+                <div className="text-[10px] text-slate-400 uppercase font-mono">Acoustic Cadence</div>
+                <div className="text-sm font-bold text-emerald-400 font-mono mt-0.5">{speed}x Speed</div>
+              </div>
+            </div>
           </div>
-        </div>
+        </Card3D>
       )}
 
-      {/* SUB-VIEW 3: Render Console */}
+      {/* SUB-VIEW 3: Production Render Console */}
       {activeView === 'render' && (
         <RenderConsole
           job={renderJob}
           voice={selectedVoice}
           availableVoices={LAUNCH_VOICES}
           onSelectVoice={(v) => {
-            setSelectedVoice(v);
+            handleVoiceSelect(v);
             if (renderJob) {
               setRenderJob((prev) =>
                 prev
@@ -557,19 +666,19 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
         />
       )}
 
-      {/* Audio Delivery & Cadence Settings Modal (Synchronized from voiceover-studio/CONTRACT.md) */}
+      {/* Audio Delivery & Cadence Settings Modal */}
       {isSettingsOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-[#FAF7F2] border border-[#E8E2D9] rounded-[10px] w-full max-w-lg p-6 shadow-2xl space-y-6 text-[#1C1917]">
-            <div className="flex items-center justify-between border-b border-[#E8E2D9] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in">
+          <div className="bg-[#030714] border border-white/[0.1] rounded-3xl w-full max-w-lg p-6 sm:p-7 shadow-2xl space-y-6 text-white">
+            <div className="flex items-center justify-between border-b border-white/[0.08] pb-4">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[#B4532A]" />
-                <h3 className="font-serif font-bold text-lg">Audio Delivery & Cadence Settings</h3>
+                <Sliders className="w-5 h-5 text-amber-400" />
+                <h3 className="font-bold text-lg">Audio Delivery & Cadence Settings</h3>
               </div>
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="text-[#6B6259] hover:text-[#1C1917] p-1"
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -580,10 +689,10 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
               <div className="space-y-1.5">
                 <div className="flex justify-between font-semibold">
                   <span className="flex items-center gap-1.5">
-                    <Gauge className="w-4 h-4 text-[#B4532A]" />
+                    <Gauge className="w-4 h-4 text-amber-400" />
                     Speech Rate (Speed Multiplier)
                   </span>
-                  <span className="font-mono text-[#B4532A]">{speed.toFixed(2)}x</span>
+                  <span className="font-mono text-amber-300">{speed.toFixed(2)}x</span>
                 </div>
                 <input
                   type="range"
@@ -592,11 +701,11 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
                   step="0.05"
                   value={speed}
                   onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-[#E8E2D9] rounded-lg appearance-none cursor-pointer accent-[#B4532A]"
+                  className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-amber-400"
                 />
-                <div className="flex justify-between text-[10px] text-[#6B6259]">
+                <div className="flex justify-between text-[10px] text-slate-400">
                   <span>0.50x (Slow / Deliberate)</span>
-                  <span>1.00x (Standard)</span>
+                  <span>1.00x (Broadcast Standard)</span>
                   <span>2.00x (Brisk)</span>
                 </div>
               </div>
@@ -604,7 +713,7 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
               {/* Pause Timings */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
                 <div className="space-y-1">
-                  <label className="font-semibold block">Sentence Pause</label>
+                  <label className="font-semibold block text-slate-300">Sentence Pause</label>
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
@@ -613,14 +722,14 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
                       step="50"
                       value={sentencePauseMs}
                       onChange={(e) => setSentencePauseMs(parseInt(e.target.value, 10) || 0)}
-                      className="w-full p-2 border border-[#E8E2D9] rounded-[4px] bg-white font-mono text-center text-xs"
+                      className="w-full p-2 border border-white/[0.08] rounded-xl bg-black/60 font-mono text-center text-xs text-white"
                     />
-                    <span className="text-[#6B6259]">ms</span>
+                    <span className="text-slate-400">ms</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-semibold block">Paragraph Pause</label>
+                  <label className="font-semibold block text-slate-300">Paragraph Pause</label>
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
@@ -629,14 +738,14 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
                       step="100"
                       value={paragraphPauseMs}
                       onChange={(e) => setParagraphPauseMs(parseInt(e.target.value, 10) || 0)}
-                      className="w-full p-2 border border-[#E8E2D9] rounded-[4px] bg-white font-mono text-center text-xs"
+                      className="w-full p-2 border border-white/[0.08] rounded-xl bg-black/60 font-mono text-center text-xs text-white"
                     />
-                    <span className="text-[#6B6259]">ms</span>
+                    <span className="text-slate-400">ms</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="font-semibold block">Section Pause</label>
+                  <label className="font-semibold block text-slate-300">Section Pause</label>
                   <div className="flex items-center gap-1">
                     <input
                       type="number"
@@ -645,57 +754,58 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
                       step="200"
                       value={sectionPauseMs}
                       onChange={(e) => setSectionPauseMs(parseInt(e.target.value, 10) || 0)}
-                      className="w-full p-2 border border-[#E8E2D9] rounded-[4px] bg-white font-mono text-center text-xs"
+                      className="w-full p-2 border border-white/[0.08] rounded-xl bg-black/60 font-mono text-center text-xs text-white"
                     />
-                    <span className="text-[#6B6259]">ms</span>
+                    <span className="text-slate-400">ms</span>
                   </div>
                 </div>
               </div>
 
               {/* Broadcast Loudness */}
-              <div className="space-y-1.5 pt-2 border-t border-[#E8E2D9]">
-                <label className="font-semibold flex items-center gap-1.5">
-                  <Volume2 className="w-4 h-4 text-[#B4532A]" />
+              <div className="space-y-2 pt-2 border-t border-white/[0.08]">
+                <label className="font-semibold flex items-center gap-1.5 text-slate-200">
+                  <Volume2 className="w-4 h-4 text-amber-400" />
                   Broadcast Target Loudness
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setLoudnessLufs(-16)}
-                    className={`p-3 rounded-[6px] border text-left transition-all ${
+                    className={`p-3 rounded-2xl border text-left transition-all ${
                       loudnessLufs === -16
-                        ? 'border-[#B4532A] bg-[#B4532A]/10 font-bold'
-                        : 'border-[#E8E2D9] bg-white'
+                        ? 'border-amber-400 bg-amber-500/15 font-bold shadow-sm'
+                        : 'border-white/[0.08] bg-black/40 text-slate-300'
                     }`}
                   >
-                    <div className="font-mono text-sm text-[#1C1917]">-16 LUFS</div>
-                    <div className="text-[10px] text-[#6B6259]">EBU R128 / Podcast Standard</div>
+                    <div className="font-mono text-sm text-white">-16 LUFS</div>
+                    <div className="text-[10px] text-slate-400">EBU R128 / Podcast Standard</div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setLoudnessLufs(-14)}
-                    className={`p-3 rounded-[6px] border text-left transition-all ${
+                    className={`p-3 rounded-2xl border text-left transition-all ${
                       loudnessLufs === -14
-                        ? 'border-[#B4532A] bg-[#B4532A]/10 font-bold'
-                        : 'border-[#E8E2D9] bg-white'
+                        ? 'border-amber-400 bg-amber-500/15 font-bold shadow-sm'
+                        : 'border-white/[0.08] bg-black/40 text-slate-300'
                     }`}
                   >
-                    <div className="font-mono text-sm text-[#1C1917]">-14 LUFS</div>
-                    <div className="text-[10px] text-[#6B6259]">YouTube & Streaming Media</div>
+                    <div className="font-mono text-sm text-white">-14 LUFS</div>
+                    <div className="text-[10px] text-slate-400">YouTube & Streaming Video</div>
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="flex justify-end pt-3 border-t border-[#E8E2D9]">
-              <button
+            <div className="flex justify-end pt-4 border-t border-white/[0.08]">
+              <AnimatedButton
                 type="button"
+                variant="cyber"
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-5 py-2 bg-[#B4532A] hover:bg-[#9A4524] text-white text-xs font-semibold rounded-[6px] transition-colors"
+                className="px-5 py-2 font-bold"
               >
                 Save & Apply Settings
-              </button>
+              </AnimatedButton>
             </div>
           </div>
         </div>
