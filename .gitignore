@@ -83,3 +83,6 @@ traps/
 icon.ico
 icon.png
 F5_TTS_Voice_Cloning.ipynb
+
+.vercel
+.env*

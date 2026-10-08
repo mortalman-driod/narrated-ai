@@ -31,7 +31,6 @@ import { ProgressTracker } from '@/components/ProgressTracker';
 import { FullVoiceoverScript } from '@/components/FullVoiceoverScript';
 import { CharacterModelSheet } from '@/components/CharacterModelSheet';
 import { VoiceoverStudio } from '@/components/voiceover/VoiceoverStudio';
-import { ThumbnailStudio } from '@/components/thumbnail/ThumbnailStudio';
 import { StoryboardResponse, ProgressUpdate } from '@/lib/generator/types';
 
 const SAMPLE_PROMPTS = [
@@ -51,7 +50,18 @@ export default function DashboardPage() {
   const [tone, setTone] = useState('authoritative');
   const [imageModel, setImageModel] = useState<'flux' | 'midjourney' | 'runway'>('flux');
   const [engineMode, setEngineMode] = useState<'cloud' | 'offline'>('cloud');
-  const [activePlatformTab, setActivePlatformTab] = useState<'architect' | 'voiceover' | 'thumbnail'>('architect');
+  const [activePlatformTab, setActivePlatformTab] = useState<'architect' | 'voiceover'>('architect');
+
+  // Input Mode: 'premise' (generate narrative from premise) vs 'voiceover' (input existing voiceover narration directly)
+  const [inputMode, setInputMode] = useState<'premise' | 'voiceover'>('premise');
+  const [voiceoverText, setVoiceoverText] = useState(
+    `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.
+
+A young shepherd named David, bearing grain for his brothers, refused to surrender faith to fear.
+
+Reaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
+  );
+  const [isDictating, setIsDictating] = useState(false);
 
   // Generation State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -67,12 +77,54 @@ export default function DashboardPage() {
   const [showOutline, setShowOutline] = useState(false);
 
   // Computed metrics for real-time script & duration detection
-  const trimmedTopic = topic.trim();
-  const inputWords = trimmedTopic ? trimmedTopic.split(/\s+/).filter(Boolean).length : 0;
-  const isScript = inputWords >= 20 && ((trimmedTopic.match(/[.!?]/g) || []).length >= 2 || trimmedTopic.includes('\n'));
+  const isDirectVoiceover = inputMode === 'voiceover';
+  const effectiveText = (isDirectVoiceover ? voiceoverText : topic).trim();
+  const inputWords = effectiveText ? effectiveText.split(/\s+/).filter(Boolean).length : 0;
+  const isScript = isDirectVoiceover || (inputWords >= 20 && ((effectiveText.match(/[.!?]/g) || []).length >= 2 || effectiveText.includes('\n')));
   const calculatedDuration = Math.max(15, Math.round(inputWords / 2.3));
   const effectiveDuration = isScript ? calculatedDuration : duration;
   const estimatedScenes = Math.max(2, Math.round(effectiveDuration / 7.5));
+
+  // Voice dictation using browser Web Speech API
+  const toggleDictation = () => {
+    if (typeof window === 'undefined') return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Please type or paste your voiceover text.');
+      return;
+    }
+
+    if (isDictating) {
+      setIsDictating(false);
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => setIsDictating(true);
+      recognition.onresult = (event: any) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            transcript += event.results[i][0].transcript + ' ';
+          }
+        }
+        if (transcript) {
+          setVoiceoverText((prev) => (prev ? prev.trim() + ' ' + transcript.trim() : transcript.trim()));
+        }
+      };
+      recognition.onerror = () => setIsDictating(false);
+      recognition.onend = () => setIsDictating(false);
+      recognition.start();
+    } catch {
+      setIsDictating(false);
+    }
+  };
 
   // Trigger Generation
   const handleGenerate = async (forceOffline: boolean = false) => {
@@ -91,14 +143,16 @@ export default function DashboardPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          topic,
+          topic: isDirectVoiceover
+            ? (effectiveText.split('\n')[0].replace(/[.!?]/g, '').trim().slice(0, 60) || 'Custom Voiceover Story')
+            : topic,
           target_duration_seconds: effectiveDuration,
           niche: nicheId,
           tone,
           image_model: imageModel,
           engine_mode: modeToUse,
           is_script_input: isScript,
-          script: isScript ? topic : undefined
+          script: isScript ? effectiveText : undefined
         })
       });
 
@@ -169,18 +223,6 @@ export default function DashboardPage() {
               <Mic className="w-3.5 h-3.5 text-amber-300" />
               <span>Voiceover Studio (Local TTS)</span>
             </button>
-            <button
-              type="button"
-              onClick={() => setActivePlatformTab('thumbnail')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                activePlatformTab === 'thumbnail'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-amber-300" />
-              <span>Thumbnail Studio</span>
-            </button>
           </div>
 
           {/* Engine Mode Toggle (Active in Architect tab) */}
@@ -223,14 +265,11 @@ export default function DashboardPage() {
           <VoiceoverStudio
             initialScript={storyboard?.full_script}
             initialTopic={storyboard?.title || topic}
-          />
-        </main>
-      ) : activePlatformTab === 'thumbnail' ? (
-        <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 animate-in fade-in">
-          <ThumbnailStudio
-            initialTitle={storyboard?.title || topic}
-            initialNiche={nicheId}
-            activeScenes={storyboard?.scenes || []}
+            onSendToArchitect={(script) => {
+              setVoiceoverText(script);
+              setInputMode('voiceover');
+              setActivePlatformTab('architect');
+            }}
           />
         </main>
       ) : (
@@ -267,41 +306,161 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Topic / Script Input Field */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              {isScript ? (
-                <div className="w-full flex items-center justify-between bg-emerald-950/40 border border-emerald-500/30 rounded-lg px-3 py-1.5 text-xs text-emerald-300">
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    <FileText className="w-3.5 h-3.5 text-emerald-400" />
-                    Pre-Written Voiceover Script Detected
-                  </span>
-                  <span className="font-mono text-[11px] text-emerald-400/90 font-medium">
-                    {inputWords} words • ~{calculatedDuration}s runtime • exactly {estimatedScenes} image scenes (~7.5s each)
-                  </span>
-                </div>
-              ) : (
-                <>
-                  <label className="text-sm font-semibold text-slate-200">Story Premise or Paste Full Script</label>
-                  <span className="text-xs text-slate-400">Enter a premise or paste your complete voiceover</span>
-                </>
-              )}
+          {/* Workflow Mode Selector */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 bg-background/80 border border-border rounded-xl">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setInputMode('premise')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  inputMode === 'premise'
+                    ? 'bg-primary/20 text-accent-cyan border border-accent-cyan/30 shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-accent-cyan" />
+                <span>Story Premise Generator</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setInputMode('voiceover')}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all ${
+                  inputMode === 'voiceover'
+                    ? 'bg-[#B4532A] text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Mic className="w-3.5 h-3.5 text-amber-300" />
+                <span>Direct Voiceover & Script Input</span>
+              </button>
             </div>
-            <textarea
-              rows={isScript ? 6 : 3}
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              disabled={isGenerating}
-              placeholder={isScript ? '' : 'Type a story premise or paste your complete voiceover script here (e.g., In the Valley of Elah, opposing armies stood locked in standoff...)'}
-              className="w-full bg-background border border-border rounded-xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-accent-cyan transition-all font-sans leading-relaxed"
-            />
-            {isScript ? (
-              <div className="text-[11px] text-slate-400 flex items-center gap-1.5 pt-0.5">
-                <span className="text-accent-cyan font-semibold">Strict Scene Budgeting:</span>
-                <span>Your script will be partitioned into exactly <strong className="text-white">{estimatedScenes} image scenes</strong> (~7.5s per scene) with contextual diffusion prompts.</span>
+            <div className="text-[11px] text-slate-400 px-2 font-mono">
+              {inputMode === 'premise'
+                ? 'AI crafts script from your story premise'
+                : 'Directly converts your voiceover into timed scenes & visual prompts'}
+            </div>
+          </div>
+
+          {/* MODE 1: Direct Voiceover Input Segment */}
+          {inputMode === 'voiceover' ? (
+            <div className="bg-surface/90 border border-[#B4532A]/30 rounded-2xl p-5 space-y-4 shadow-lg">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border/80 pb-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[#B4532A]/20 text-amber-300 border border-[#B4532A]/40 font-bold">
+                      Direct Voiceover Input
+                    </span>
+                    <span className="text-xs text-slate-400">
+                      Exact text preserved • Synchronized 4–8s scene boundaries
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white mt-1">
+                    Input Your Voiceover Script
+                  </h3>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleDictation}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      isDictating
+                        ? 'bg-rose-600 text-white animate-pulse shadow-glow-rose'
+                        : 'bg-background hover:bg-surface-hover text-slate-300 hover:text-white border border-border'
+                    }`}
+                    title="Speak into your microphone to dictate voiceover"
+                  >
+                    <Mic className={`w-3.5 h-3.5 ${isDictating ? 'text-white' : 'text-rose-400'}`} />
+                    <span>{isDictating ? 'Listening... (Click to stop)' : 'Dictate with Mic'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        if (text) setVoiceoverText((prev) => (prev ? prev + '\n\n' + text : text));
+                      } catch {
+                        alert('Clipboard access denied. Please paste manually into the text box.');
+                      }
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background hover:bg-surface-hover text-slate-300 border border-border transition-colors"
+                  >
+                    Paste
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVoiceoverText(
+                        `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.\n\nA young shepherd named David, bearing grain for his brothers, refused to surrender faith to fear.\n\nReaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
+                      )
+                    }
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background hover:bg-surface-hover text-slate-300 border border-border transition-colors"
+                  >
+                    Sample
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setVoiceoverText('')}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background hover:bg-rose-950/40 text-slate-400 hover:text-rose-300 border border-border transition-colors"
+                  >
+                    Clear
+                  </button>
+                </div>
               </div>
-            ) : (
-              /* Quick Inspiration Pills */
+
+              {/* Textarea */}
+              <textarea
+                rows={7}
+                value={voiceoverText}
+                onChange={(e) => setVoiceoverText(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Type, paste, or dictate your full voiceover script here... (e.g., In the deep trenches of the Pacific, sunlight fades into total silence...)"
+                className="w-full bg-background border border-border rounded-xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#B4532A] transition-all font-sans leading-relaxed resize-y"
+              />
+
+              {/* Metrics Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
+                <div className="bg-background/80 border border-border rounded-xl p-2.5 text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">Word Count</div>
+                  <div className="text-sm font-bold text-white font-mono">{inputWords} words</div>
+                </div>
+                <div className="bg-background/80 border border-border rounded-xl p-2.5 text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">Natural Duration</div>
+                  <div className="text-sm font-bold text-amber-300 font-mono">~{calculatedDuration}s</div>
+                </div>
+                <div className="bg-background/80 border border-border rounded-xl p-2.5 text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">Visual Scenes</div>
+                  <div className="text-sm font-bold text-accent-cyan font-mono">Exactly {estimatedScenes} scenes</div>
+                </div>
+                <div className="bg-background/80 border border-border rounded-xl p-2.5 text-center">
+                  <div className="text-[10px] text-slate-400 uppercase font-mono">Scene Pacing</div>
+                  <div className="text-sm font-bold text-emerald-400 font-mono">~7.5s / scene</div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                <span>💡 Your words remain untouched; the engine splits them into cinematic retention cuts and pairs each cut with a {imageModel.toUpperCase()} diffusion prompt.</span>
+                <span className="font-mono text-emerald-400 text-[10px]">Strict 4–8s bounds</span>
+              </div>
+            </div>
+          ) : (
+            /* MODE 2: Story Premise Generator */
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-slate-200">Story Premise / Subject Matter</label>
+                <span className="text-xs text-slate-400">Enter a premise to synthesize a complete script from scratch</span>
+              </div>
+              <textarea
+                rows={3}
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                disabled={isGenerating}
+                placeholder="Type a story premise or premise idea (e.g., David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith)"
+                className="w-full bg-background border border-border rounded-xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-accent-cyan transition-all font-sans leading-relaxed"
+              />
               <div className="flex flex-wrap items-center gap-1.5 pt-1">
                 <span className="text-[11px] text-slate-400 font-medium mr-1">Inspirations:</span>
                 {SAMPLE_PROMPTS.map((p) => (
@@ -323,15 +482,17 @@ export default function DashboardPage() {
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* Duration Selector */}
-          <DurationSlider
-            value={duration}
-            onChange={setDuration}
-            disabled={isGenerating}
-          />
+          {/* Duration Selector (Visible in premise mode, or override in voiceover mode) */}
+          {inputMode === 'premise' && (
+            <DurationSlider
+              value={duration}
+              onChange={setDuration}
+              disabled={isGenerating}
+            />
+          )}
 
           {/* Niche Selector */}
           <NicheSelector
@@ -380,9 +541,9 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 w-full sm:w-auto">
               <button
                 type="button"
-                disabled={isGenerating}
+                disabled={isGenerating || (isDirectVoiceover ? !voiceoverText.trim() : !topic.trim())}
                 onClick={() => handleGenerate(true)}
-                className="px-4 py-2.5 rounded-xl border border-border bg-background hover:bg-surface-hover text-slate-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none"
+                className="px-4 py-2.5 rounded-xl border border-border bg-background hover:bg-surface-hover text-slate-300 hover:text-white text-xs font-semibold transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Generate instantly without any external API or network calls"
               >
                 <Zap className="w-4 h-4 text-emerald-400" />
@@ -391,21 +552,27 @@ export default function DashboardPage() {
 
               <button
                 type="button"
-                disabled={isGenerating || !topic.trim()}
+                disabled={isGenerating || (isDirectVoiceover ? !voiceoverText.trim() : !topic.trim())}
                 onClick={() => handleGenerate(false)}
                 className={`px-6 py-2.5 rounded-xl text-white text-xs font-bold shadow-glow-blue transition-all flex items-center justify-center gap-2 flex-1 sm:flex-none disabled:opacity-50 disabled:cursor-not-allowed ${
-                  engineMode === 'offline'
+                  isDirectVoiceover
+                    ? 'bg-gradient-to-r from-[#B4532A] to-amber-600 hover:brightness-110'
+                    : engineMode === 'offline'
                     ? 'bg-gradient-to-r from-emerald-600 to-teal-500 hover:brightness-110'
                     : 'bg-gradient-to-r from-primary via-blue-600 to-accent-cyan hover:brightness-110'
                 }`}
               >
-                {engineMode === 'offline' ? (
+                {isDirectVoiceover ? (
+                  <Mic className="w-4 h-4 text-amber-300" />
+                ) : engineMode === 'offline' ? (
                   <Zap className="w-4 h-4" />
                 ) : (
                   <Sparkles className="w-4 h-4" />
                 )}
                 {isGenerating
                   ? 'Synthesizing...'
+                  : isDirectVoiceover
+                  ? `Generate Storyboard from Voiceover (${estimatedScenes} Scenes)`
                   : engineMode === 'offline'
                   ? 'Generate Offline Storyboard'
                   : 'Generate Cloud AI Storyboard'}
@@ -451,22 +618,12 @@ export default function DashboardPage() {
               <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
                 <button
                   type="button"
-                  onClick={() => setActivePlatformTab('thumbnail')}
-                  className="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
-                  title="Design high-CTR 1080p YouTube thumbnail with auto-filled story title"
-                >
-                  <ImageIcon className="w-3.5 h-3.5" />
-                  <span>Thumbnail</span>
-                </button>
-
-                <button
-                  type="button"
                   onClick={() => setActivePlatformTab('voiceover')}
                   className="px-3.5 py-2 rounded-xl bg-[#B4532A]/20 hover:bg-[#B4532A]/30 text-amber-300 border border-[#B4532A]/40 text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
                   title="Send full script to Voiceover Studio"
                 >
                   <Mic className="w-3.5 h-3.5" />
-                  <span>Voiceover</span>
+                  <span>Voiceover Studio</span>
                 </button>
 
                 <button

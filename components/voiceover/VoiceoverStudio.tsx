@@ -14,11 +14,13 @@ import { RenderConsole } from './RenderConsole';
 interface VoiceoverStudioProps {
   initialScript?: string;
   initialTopic?: string;
+  onSendToArchitect?: (script: string) => void;
 }
 
 export const VoiceoverStudio: React.FC<VoiceoverStudioProps> = ({
   initialScript = '',
-  initialTopic = 'Untitled Voiceover Project'
+  initialTopic = 'Untitled Voiceover Project',
+  onSendToArchitect
 }) => {
   // Navigation & Sub-views
   const [activeView, setActiveView] = useState<'casting' | 'editor' | 'render'>('casting');
@@ -422,6 +424,17 @@ Stepping into the dry brook, David selected five smooth stones. With only his sl
               >
                 ▶ Listen First Passage
               </button>
+
+              {onSendToArchitect && (
+                <button
+                  type="button"
+                  onClick={() => onSendToArchitect(scriptText)}
+                  className="px-3.5 py-1.5 rounded-[6px] bg-[#1C1917] hover:bg-black text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors shadow-sm"
+                  title="Send this script to Storyboard Architect to generate visual scenes"
+                >
+                  ⚡ Send to Storyboard Architect
+                </button>
+              )}
 
               <button
                 type="button"

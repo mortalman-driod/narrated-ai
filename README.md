@@ -8,26 +8,24 @@ A modern, production-grade AI content creation workstation inspired by **Narrate
 [![Remotion](https://img.shields.io/badge/Remotion-4-purple.svg)](https://remotion.dev/)
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fmortalman-driod%2Fnarrated-ai&env=GEMINI_API_KEY&envDescription=Optional%20Google%20Gemini%20API%20key%20for%20creative%20cloud%20storyboards)
 
-
 ---
 
 ## 🌟 Studio Suite Overview
 
-Narrated AI is organized into three dedicated studio environments:
+Narrated AI is organized into two core studios:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                      NARRATED AI STUDIO SUITE                          │
-├──────────────────┬──────────────────────┬──────────────────────────────┤
-│ 📐 PROMPT        │ 🎙️ VOICEOVER         │ 🖼️ THUMBNAIL                 │
-│    ARCHITECT     │    STUDIO            │    STUDIO                    │
-├──────────────────┼──────────────────────┼──────────────────────────────┤
-│ • Storyboards    │ • Neural TTS Engine  │ • 1080p Canvas Designer      │
-│ • Diffusion      │ • Edge & Kokoro      │ • Composition Presets        │
-│   Prompts        │ • Pronunciation      │ • CTR Enhancements           │
-│ • Character      │   Lexicon            │ • Dynamic Badges             │
-│   Model Sheets   │ • Batch Audio Render │ • 1-Click PNG Export         │
-└──────────────────┴──────────────────────┴──────────────────────────────┘
+├───────────────────────────────────┬────────────────────────────────────┤
+│ 📐 PROMPT ARCHITECT               │ 🎙️ VOICEOVER STUDIO                │
+├───────────────────────────────────┼────────────────────────────────────┤
+│ • Direct Voiceover & Mic Input    │ • Neural TTS Speech Synthesis      │
+│ • Premise-to-Script Generator     │ • Edge Neural & Kokoro Fallback    │
+│ • Synchronized 4–8s Scene Cuts    │ • Phonetic Pronunciation Lexicon   │
+│ • Contextual Diffusion Prompts    │ • Audio Cadence & Speed Tuning     │
+│ • Character Consistency Model     │ • Batch Audio Render & Stitching   │
+└───────────────────────────────────┴────────────────────────────────────┘
 ```
 
 ---
@@ -35,6 +33,12 @@ Narrated AI is organized into three dedicated studio environments:
 ## 🚀 Key Modules & Capabilities
 
 ### 1. 📐 Prompt Architect (Storyboard & Diffusion Engine)
+- **Direct Voiceover Input & Speech Dictation**:
+  - Input, paste, or speak your voiceover via live microphone dictation (`Web Speech API`).
+  - Automatically calculates exact word counts, natural spoken runtimes, and optimal scene budgets.
+  - Preserves your exact words and partitions them into sequential, engagement-optimized scenes.
+- **Story Premise Generator**:
+  - Synthesizes compelling documentary narratives from just a premise or historical topic.
 - **Mathematical Timing Engine (`lib/generator/timing.ts`)**:
   - Automatically calculates sub-second narration timing based on words-per-minute (WPM).
   - Enforces strict **4 to 8 second scene pacing** for maximum visual retention.
@@ -53,19 +57,12 @@ Narrated AI is organized into three dedicated studio environments:
   - Curated voice catalog across multiple accents, genders, and storytelling tones (Documentary, Deep Dramatic, Warm Narration, Energetic).
 - **Phonetic Pronunciation Lexicon**:
   - Custom pronunciation substitutions for biblical, fantasy, historical, and foreign names.
+- **Direct Bridge to Storyboard Architect**:
+  - Send any edited voiceover directly to the Storyboard Architect with 1 click to generate matched visual scenes.
 - **Batch Export**:
   - Synthesizes individual scene audio files (`scene_1.mp3`, `scene_2.mp3`, etc.) or merges complete full-length audio tracks.
 
-### 3. 🖼️ Thumbnail Studio (1080p YouTube Cover Designer)
-- **High-Impact Composition Templates**:
-  - Split-screen comparison, focal spotlight, rule-of-thirds, and cinematic letterbox formats.
-- **CTR Optimization Tools**:
-  - Custom bold typography, dynamic gradient strokes, glowing accents, and contrast vignettes.
-  - Contextual badges ("TRUE STORY", "MUST WATCH", "EXPOSED", "NEW").
-- **Client-Side Vector/Raster Export**:
-  - Zero-latency 1920x1080 high-resolution PNG rendering directly via HTML5 Canvas.
-
-### 4. 🎬 Remotion Video Pipeline
+### 3. 🎬 Remotion Video Pipeline
 - Programmatic video rendering using **Remotion**:
   - Dynamic Ken Burns camera motion (`slow pan`, `cinematic zoom`, `tracking`).
   - Burned-in, word-highlighted karaoke-style subtitles.
@@ -83,7 +80,6 @@ Narrated AI is organized into three dedicated studio environments:
 │   ├── layout.tsx                 # Root layout & dark theme provider
 │   └── page.tsx                   # Studio workspace dashboard
 ├── components/
-│   ├── thumbnail/                 # Thumbnail Studio interactive editor
 │   ├── voiceover/                 # Voiceover Studio player & controls
 │   ├── CharacterModelSheet.tsx    # Character continuity panel
 │   ├── DurationSlider.tsx         # Runtime slider (15s - 180s)
@@ -93,7 +89,6 @@ Narrated AI is organized into three dedicated studio environments:
 │   └── StoryboardTable.tsx        # Production data table
 ├── lib/
 │   ├── generator/                 # Procedural & Gemini storyboard engine
-│   ├── thumbnail/                 # Canvas renderer & layout presets
 │   ├── voiceover/                 # Audio exporter, voices, lexicon
 │   └── presets.ts                 # Pre-configured storytelling niches
 ├── remotion/                      # Remotion composition & subtitle renderer
@@ -148,13 +143,10 @@ Narrated AI is organized into three dedicated studio environments:
 
 ### Deploying to Vercel (Recommended)
 
-1. Push your code to your GitHub repository (already live at [mortalman-driod/narrated-ai](https://github.com/mortalman-driod/narrated-ai)).
-2. Log into [Vercel](https://vercel.com) and click **"Add New..." > "Project"**.
-3. Import `mortalman-driod/narrated-ai`.
-4. In the Project Settings:
-   - Framework Preset: **Next.js**
-   - Environment Variables: Add `GEMINI_API_KEY` (if desired).
-5. Click **Deploy**.
+1. Push your code to your GitHub repository (live at [mortalman-driod/narrated-ai](https://github.com/mortalman-driod/narrated-ai)).
+2. Log into [Vercel](https://vercel.com) and import the project.
+3. In Project Settings, set Framework Preset to **Next.js**.
+4. Click **Deploy**.
 
 ### Self-Hosted Production Build
 
