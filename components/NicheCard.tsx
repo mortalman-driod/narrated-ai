@@ -100,41 +100,42 @@ export const NicheSelector: React.FC<NicheSelectorProps> = ({
         {filteredNiches.map((niche) => {
           const isSelected = selectedNicheId === niche.id;
           return (
-            <div
-              key={niche.id}
-              onClick={() => !disabled && onSelectNiche(niche.id)}
-              className={`p-3.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col justify-between ${
-                isSelected
-                  ? 'bg-surface-hover border-accent-cyan shadow-glow-cyan/20 ring-1 ring-accent-cyan'
-                  : 'bg-surface border-border hover:border-slate-600 hover:bg-surface-hover/60'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="p-2 rounded-lg bg-background/60 border border-border">
-                    {ICON_MAP[niche.iconName] || <Sparkles className="w-5 h-5 text-accent-cyan" />}
+            <div key={niche.id} className="h-full">
+              <div
+                onClick={() => !disabled && onSelectNiche(niche.id)}
+                className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between h-full backdrop-blur-sm ${
+                  isSelected
+                    ? 'bg-gradient-to-b from-[#132238] to-[#0D1627] border-cyan-400 shadow-glow-cyan/30 ring-1 ring-cyan-400/60 scale-[1.02]'
+                    : 'bg-[#0E1524]/80 border-white/[0.08] hover:border-slate-500 hover:bg-[#131D31]/80 hover:translate-y-[-2px]'
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="p-2 rounded-xl bg-black/40 border border-white/[0.08] shadow-inner">
+                      {ICON_MAP[niche.iconName] || <Sparkles className="w-5 h-5 text-cyan-400" />}
+                    </div>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-black/40 border border-white/[0.08] text-slate-300">
+                      {niche.badge}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-background border border-border text-slate-300">
-                    {niche.badge}
-                  </span>
+                  <h4 className="text-sm font-bold text-white mb-1 tracking-tight">{niche.name}</h4>
+                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                    {niche.description}
+                  </p>
                 </div>
-                <h4 className="text-sm font-bold text-white mb-1">{niche.name}</h4>
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                  {niche.description}
-                </p>
-              </div>
 
-              <div className="mt-3 pt-2 border-t border-border flex items-center justify-between text-[11px]">
-                <span className="text-slate-400 flex items-center gap-1">
-                  <UserCheck className="w-3 h-3 text-emerald-400" />
-                  Consistent Character
-                </span>
-                {isSelected && (
-                  <span className="text-accent-cyan font-semibold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent-cyan animate-pulse" />
-                    Selected
+                <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
+                    Consistent Character
                   </span>
-                )}
+                  {isSelected && (
+                    <span className="text-cyan-300 font-semibold flex items-center gap-1.5 font-mono text-[11px]">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
