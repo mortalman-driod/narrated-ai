@@ -1,129 +1,168 @@
-# Narrated AI — Automated Narrative Pipeline & Video Synthesis
+# 🎙️ Narrated AI — Studio Suite
 
-A modular, automated AI storytelling and video generation engine inspired by **Narrated AI**, Vox, and cinematic documentary workflows. Built with **Node.js**, **TypeScript**, **Google Gemini**, **Remotion**, **OpenAI**, and **FFmpeg**.
+A modern, production-grade AI content creation workstation inspired by **Narrated AI**, Vox, and documentary workflows. Built with **Next.js 14**, **React 18**, **Tailwind CSS**, **Google Gemini**, **Remotion**, and neural speech synthesis.
+
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)](https://www.typescriptlang.org/)
+[![Remotion](https://img.shields.io/badge/Remotion-4-purple.svg)](https://remotion.dev/)
+
+---
+
+## 🌟 Studio Suite Overview
+
+Narrated AI is organized into three dedicated studio environments:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                      NARRATED AI STUDIO SUITE                          │
+├──────────────────┬──────────────────────┬──────────────────────────────┤
+│ 📐 PROMPT        │ 🎙️ VOICEOVER         │ 🖼️ THUMBNAIL                 │
+│    ARCHITECT     │    STUDIO            │    STUDIO                    │
+├──────────────────┼──────────────────────┼──────────────────────────────┤
+│ • Storyboards    │ • Neural TTS Engine  │ • 1080p Canvas Designer      │
+│ • Diffusion      │ • Edge & Kokoro      │ • Composition Presets        │
+│   Prompts        │ • Pronunciation      │ • CTR Enhancements           │
+│ • Character      │   Lexicon            │ • Dynamic Badges             │
+│   Model Sheets   │ • Batch Audio Render │ • 1-Click PNG Export         │
+└──────────────────┴──────────────────────┴──────────────────────────────┘
+```
 
 ---
 
 ## 🚀 Key Modules & Capabilities
 
-### 1. Synchronized Script & Diffusion Prompt Generator (`generate.ts`)
-- **Dynamic Timing & Script Engine (`services/narrativeEngine.ts`)**:
-  - Calculates sub-second spoken durations based on exact word counts and narration speed (WPM).
-  - Enforces **strict 4 to 8 second scene pacing** for visual engagement.
-  - Generates cumulative, continuous start and end timestamps in `MM:SS` format.
-- **Visual Prompt Synthesis (Flux / Midjourney v6)**:
-  - Generates detailed diffusion prompts including subject framing, lighting, environment, camera lens/gear, and color grading.
-  - Maintains **visual continuity** across scenes with persistent character attributes, environmental progression, and lighting anchors.
-  - Supports style presets: `cinematic realism`, `dark fantasy`, `retro anime`, `cyberpunk noir`, `historical documentary`, or custom aesthetics.
-- **Dual Export Schema**:
-  - Structured JSON at [output/storyboard.json](file:///c:/Users/ezeki/Desktop/Game%20Dev/output/storyboard.json).
-  - Human-readable production document at [output/storyboard.md](file:///c:/Users/ezeki/Desktop/Game%20Dev/output/storyboard.md).
+### 1. 📐 Prompt Architect (Storyboard & Diffusion Engine)
+- **Mathematical Timing Engine (`lib/generator/timing.ts`)**:
+  - Automatically calculates sub-second narration timing based on words-per-minute (WPM).
+  - Enforces strict **4 to 8 second scene pacing** for maximum visual retention.
+  - Automatically breaks longer scripts into balanced cinematic scene cuts.
+- **Visual Continuity & Diffusion Prompts**:
+  - Generates synchronized prompts optimized for **Flux.1**, **Midjourney v6**, and **Runway Gen-3**.
+  - Includes camera angles, framing, lighting, lenses, and color palettes.
+  - Extracts character model sheets and stylistic anchors across all scenes.
+- **Dual Engine Architecture**:
+  - **Cloud Mode**: High-fidelity creative synthesis via **Google Gemini 2.5 Flash**.
+  - **Offline Mode**: 100% deterministic local procedural engine requiring zero API keys.
 
-### 2. Automated Video Composition & Assembly (`cli.ts`)
-- **Audio Worker (`services/tts.ts`)**:
-  - Synthesizes speech via OpenAI TTS (`tts-1`), ElevenLabs, or offline synth fallback.
-  - Computes audio duration with `ffprobe` and aligns word-level subtitle timings.
-- **Remotion Video Engine (`remotion/NarratedStory.tsx`)**:
-  - Renders 1080x1920 vertical video with Ken Burns camera motion (`zoom in`, `zoom out`, `slow pan right/left`).
-  - Burned-in animated subtitles with glowing active-word pop/karaoke styling.
-  - Outputs ready-to-publish MP4 to [renders/output.mp4](file:///c:/Users/ezeki/Desktop/Game%20Dev/renders/output.mp4).
+### 2. 🎙️ Voiceover Studio (Neural Audio Synthesizer)
+- **High-Quality Speech Synthesis**:
+  - Built-in multi-voice neural synthesis powered by **Microsoft Edge Neural TTS** and offline fallbacks.
+  - Curated voice catalog across multiple accents, genders, and storytelling tones (Documentary, Deep Dramatic, Warm Narration, Energetic).
+- **Phonetic Pronunciation Lexicon**:
+  - Custom pronunciation substitutions for biblical, fantasy, historical, and foreign names.
+- **Batch Export**:
+  - Synthesizes individual scene audio files (`scene_1.mp3`, `scene_2.mp3`, etc.) or merges complete full-length audio tracks.
+
+### 3. 🖼️ Thumbnail Studio (1080p YouTube Cover Designer)
+- **High-Impact Composition Templates**:
+  - Split-screen comparison, focal spotlight, rule-of-thirds, and cinematic letterbox formats.
+- **CTR Optimization Tools**:
+  - Custom bold typography, dynamic gradient strokes, glowing accents, and contrast vignettes.
+  - Contextual badges ("TRUE STORY", "MUST WATCH", "EXPOSED", "NEW").
+- **Client-Side Vector/Raster Export**:
+  - Zero-latency 1920x1080 high-resolution PNG rendering directly via HTML5 Canvas.
+
+### 4. 🎬 Remotion Video Pipeline
+- Programmatic video rendering using **Remotion**:
+  - Dynamic Ken Burns camera motion (`slow pan`, `cinematic zoom`, `tracking`).
+  - Burned-in, word-highlighted karaoke-style subtitles.
+  - 9:16 vertical video export for YouTube Shorts, TikTok, and Instagram Reels.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-├── generate.ts                # Narrative & Diffusion Prompt Generator CLI
-├── cli.ts                     # Video Composition & Remotion rendering CLI
-├── services/
-│   ├── narrativeEngine.ts     # Timing engine & Gemini prompt orchestrator
-│   ├── markdownExporter.ts    # Markdown storyboard formatter & exporter
-│   ├── scriptGen.ts           # LLM script generator (OpenAI / Gemini / Mock)
-│   ├── tts.ts                 # TTS audio worker & ffprobe duration analyzer
-│   └── imageGen.ts            # DALL-E 3 & procedural visual card generator
-├── remotion/
-│   ├── index.ts               # Remotion root entrypoint
-│   ├── Root.tsx               # Remotion Composition with dynamic metadata
-│   ├── Composition.tsx        # Composition export & default studio props
-│   ├── NarratedStory.tsx      # Main composition (Series, progress bar, header badge)
-│   ├── SceneView.tsx          # Single scene renderer (camera motion, audio, visual)
-│   └── Subtitles.tsx          # Burned-in dynamic word-highlighted subtitles
-├── output/
-│   ├── storyboard.json        # Timestamped JSON output
-│   └── storyboard.md          # Production Markdown document
-├── temp/
-│   ├── audio/                 # Generated audio files (scene_1.mp3, etc.)
-│   └── storyboard.json        # Compiled Remotion storyboard
-├── public/                    # Remotion static assets mirror for rendering
-└── renders/
-    └── output.mp4             # Final rendered MP4 video
+├── app/
+│   ├── api/
+│   │   ├── generate/route.ts      # Storyboard synthesis API route
+│   │   └── tts/route.ts           # Speech synthesis API route
+│   ├── layout.tsx                 # Root layout & dark theme provider
+│   └── page.tsx                   # Studio workspace dashboard
+├── components/
+│   ├── thumbnail/                 # Thumbnail Studio interactive editor
+│   ├── voiceover/                 # Voiceover Studio player & controls
+│   ├── CharacterModelSheet.tsx    # Character continuity panel
+│   ├── DurationSlider.tsx         # Runtime slider (15s - 180s)
+│   ├── FullVoiceoverScript.tsx    # Full narration review modal
+│   ├── NicheCard.tsx              # Genre presets selector
+│   ├── SceneCard.tsx              # Visual storyboard scene cards
+│   └── StoryboardTable.tsx        # Production data table
+├── lib/
+│   ├── generator/                 # Procedural & Gemini storyboard engine
+│   ├── thumbnail/                 # Canvas renderer & layout presets
+│   ├── voiceover/                 # Audio exporter, voices, lexicon
+│   └── presets.ts                 # Pre-configured storytelling niches
+├── remotion/                      # Remotion composition & subtitle renderer
+├── services/                      # CLI pipelines & exporters
+├── cli.ts                         # Remotion video synthesis CLI
+└── generate.ts                    # Standalone CLI storyboard generator
 ```
 
 ---
 
-## 🛠️ Configuration (`.env`)
+## 🛠️ Getting Started
 
-```env
-# Google Gemini API (Primary Narrative Engine)
-GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.5-flash
+### Prerequisites
+- **Node.js** 18.x or 20.x
+- **npm** or **pnpm**
+- *(Optional)* Google Gemini API key (for cloud storyboard generation)
 
-# OpenAI API (TTS & Video Narrator)
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_TTS_VOICE=onyx
+### Installation
 
-# Video Settings
-VIDEO_FPS=30
-VIDEO_WIDTH=1080
-VIDEO_HEIGHT=1920
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/mortalman-driod/narrated-ai.git
+   cd narrated-ai
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**:
+   Create a `.env` file in the root directory:
+   ```env
+   # Google Gemini API (Optional: used for cloud storyboard generation)
+   GEMINI_API_KEY=your_gemini_api_key_here
+   GEMINI_MODEL=gemini-2.5-flash
+
+   # Port configuration
+   PORT=3000
+   ```
+   > *Note: If no API key is provided, the application automatically runs in **Offline Procedural Mode**.*
+
+4. **Launch the Development Server**:
+   ```bash
+   npm run dev
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🚢 Production Deployment
+
+### Deploying to Vercel (Recommended)
+
+1. Push your code to your GitHub repository (already live at [mortalman-driod/narrated-ai](https://github.com/mortalman-driod/narrated-ai)).
+2. Log into [Vercel](https://vercel.com) and click **"Add New..." > "Project"**.
+3. Import `mortalman-driod/narrated-ai`.
+4. In the Project Settings:
+   - Framework Preset: **Next.js**
+   - Environment Variables: Add `GEMINI_API_KEY` (if desired).
+5. Click **Deploy**.
+
+### Self-Hosted Production Build
+
+```bash
+npm run build
+npm run start
 ```
 
 ---
 
-## 🎬 How to Run
+## 📜 License
 
-### 1. Generate Synchronized Script & Diffusion Prompts
-```bash
-# Default (60 seconds, 140 WPM, cinematic realism)
-npm run generate -- --topic="The Lost City of Z" --duration=60
-
-# Custom Pacing and Style Preset
-npm run generate -- --topic="Neon Shadows: The Quantum Heist" --duration=45 --pacing=150 --style="cyberpunk noir"
-
-# Dark Fantasy Epic (120 seconds)
-npm run generate -- --topic="The Forgotten Citadel of Ash" --duration=120 --style="dark fantasy"
-```
-
-### 2. Output Schema
-
-#### JSON (`output/storyboard.json`):
-```json
-{
-  "title": "The Quest for Z",
-  "total_duration": "01:00",
-  "scenes": [
-    {
-      "scene_number": 1,
-      "timestamp_start": "00:00",
-      "timestamp_end": "00:05",
-      "duration_seconds": 5,
-      "narration_script": "Colonel Fawcett, driven by legend, ventured deep into the Amazon's uncharted heart.",
-      "visual_prompt": "Extreme wide establishing shot of a vast, dense Amazonian jungle canopy...",
-      "camera_direction": "Slow drone pull-up, revealing the immense scale of the jungle."
-    }
-  ]
-}
-```
-
-#### Markdown (`output/storyboard.md`):
-Exports a formatted production document featuring timeline tables, word count metrics, camera directions, and copyable prompt codeblocks ready for Midjourney v6 and Flux.1.
-
-### 3. Full Video Narration Rendering (Remotion)
-```bash
-# Render complete MP4 with subtitles and audio
-npm run generate-story -- --topic="The Mystery of Flight 19"
-
-# Preview video in Remotion Studio
-npm run preview
-```
+This project is licensed under the MIT License.
