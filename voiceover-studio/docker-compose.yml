@@ -1,0 +1,13 @@
+services:
+  backend:
+    build: ./backend
+    ports: ["8000:8000"]
+    volumes: ["vs-data:/app/data"]
+    environment:
+      VS_RENDER_CONCURRENCY: "8"
+  frontend:
+    build: ./frontend
+    ports: ["5173:5173"]
+    depends_on: [backend]
+volumes:
+  vs-data:

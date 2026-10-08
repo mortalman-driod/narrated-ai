@@ -1,0 +1,1 @@
+export default { content: ['./index.html', './src/**/*.{ts,tsx}'], theme: { extend: { colors: { paper: '#FAF7F2', ink: '#1C1917', muted: '#6B6259', sienna: '#B4532A', line: '#E8E2D9', olive: '#4D7C0F' }, fontFamily: { display: ['Fraunces', 'serif'], sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] }, borderRadius: { studio: '6px' } } }, plugins: [] };

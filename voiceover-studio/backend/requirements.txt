@@ -1,0 +1,10 @@
+fastapi==0.115.*
+uvicorn[standard]==0.30.*
+python-multipart==0.0.*
+numpy==1.26.*
+soundfile==0.12.*
+# Local TTS engines (install at least one; the app falls back to a built-in
+# placeholder engine if neither is present):
+#   pip install kokoro>=0.9      # primary fast engine (Apache-2.0)
+#   pip install TTS==0.22.*      # Coqui XTTS v2, for Nigerian voice cloning
+# ffmpeg must be installed at the system level (apt/brew), used for assembly.

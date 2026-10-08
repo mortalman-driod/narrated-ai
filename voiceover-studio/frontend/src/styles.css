@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  h1, h2, h3 { @apply font-display; }
+}
+
+@layer components {
+  /* ---- Buttons: always text-labelled, honest states ------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-btn px-4 py-2
+           text-sm font-medium transition-colors duration-150
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-accent
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary { @apply btn bg-accent text-white hover:bg-accentHover; }
+  .btn-outline { @apply btn border border-ink/25 bg-transparent text-ink hover:border-ink/50; }
+  .btn-quiet   { @apply btn text-muted hover:text-ink; }
+
+  /* ---- Voice cards ------------------------------------------------------ */
+  .voice-card {
+    @apply bg-surface border border-line rounded-lg p-5 shadow-card
+           transition-shadow duration-200 hover:shadow-md;
+  }
+  .tag {
+    @apply font-mono text-[11px] uppercase tracking-wider text-muted
+           border border-line rounded px-1.5 py-0.5;
+  }
+  .card-selected { @apply border-accent ring-1 ring-accent; }
+
+  /* ---- Script editor ---------------------------------------------------- */
+  .script-area {
+    @apply w-full h-72 bg-surface border border-line rounded-lg p-4
+           font-mono text-sm leading-relaxed resize-y
+           focus:outline-none focus:ring-2 focus:ring-accent/60;
+  }
+
+  /* ---- Progress ---------------------------------------------------------- */
+  .progress-track { @apply h-2 bg-line rounded-full overflow-hidden; }
+  .progress-fill  { @apply h-full bg-olive rounded-full transition-all duration-300; }
+
+  /* ---- Player scrubber --------------------------------------------------- */
+  .scrubber { @apply w-full accent-[#B4532A] cursor-pointer; }
+
+  /* ---- Nav rail ------------------------------------------------------------ */
+  .nav-item { @apply block w-full text-left px-3 py-2 rounded-btn text-sm
+                     text-muted hover:text-ink hover:bg-line/50 transition-colors; }
+  .nav-item-active { @apply text-ink bg-line/70 font-medium; }
+}

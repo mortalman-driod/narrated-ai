@@ -1,0 +1,46 @@
+{
+  "name": "narrated-ai",
+  "version": "1.0.0",
+  "description": "Automated video narration application inspired by Narrated AI using Node.js, Remotion, and external media APIs",
+  "main": "cli.ts",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "generate": "tsx generate.ts",
+    "generate-story": "tsx cli.ts",
+    "preview": "remotion preview remotion/index.ts",
+    "render": "remotion render NarratedStory renders/output.mp4",
+    "test-pipeline": "tsx cli.ts --mock --topic=\"The Mystery of Flight 19\""
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.230",
+    "@remotion/cli": "^4.0.230",
+    "@remotion/renderer": "^4.0.230",
+    "autoprefixer": "^10.6.1",
+    "axios": "^1.7.9",
+    "clsx": "^2.1.1",
+    "commander": "^12.1.0",
+    "dotenv": "^16.4.7",
+    "google-tts-api": "^2.0.2",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.48.0",
+    "msedge-tts": "^2.0.8",
+    "next": "^14.2.24",
+    "openai": "^4.85.0",
+    "postcss": "^8.5.28",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.230",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "@types/jszip": "^3.4.0",
+    "@types/node": "^20.17.19",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
