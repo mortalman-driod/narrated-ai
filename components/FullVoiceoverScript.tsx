@@ -13,6 +13,7 @@ import {
   AlignLeft,
   ListOrdered
 } from 'lucide-react';
+import { AnimatedButton } from './ui/AnimatedButton';
 
 interface FullVoiceoverScriptProps {
   storyboard: StoryboardResponse;
@@ -27,7 +28,8 @@ export const FullVoiceoverScript: React.FC<FullVoiceoverScriptProps> = ({
   const [displayMode, setDisplayMode] = useState<'clean' | 'annotated'>('clean');
 
   // Calculate statistics
-  const cleanScript = storyboard.full_script?.trim() ||
+  const cleanScript =
+    storyboard.full_script?.trim() ||
     storyboard.scenes.map((s) => s.narration_script).join(' ');
 
   const wordCount = cleanScript.split(/\s+/).filter(Boolean).length;
@@ -41,7 +43,7 @@ export const FullVoiceoverScript: React.FC<FullVoiceoverScriptProps> = ({
   const annotatedScript = storyboard.scenes
     .map(
       (s) =>
-        `[${s.timestamp_start} - ${s.timestamp_end}] (Scene ${s.scene_number})\n${s.narration_script}`
+        `[${s.timestamp_start} - ${s.timestamp_end}] (Scene ${s.scene_number} • ${s.duration_seconds}s)\n${s.narration_script}`
     )
     .join('\n\n');
 
@@ -67,118 +69,125 @@ export const FullVoiceoverScript: React.FC<FullVoiceoverScriptProps> = ({
   };
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
+    <div className="bg-[#030714]/90 border border-cyan-500/25 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-2xl space-y-6">
       {/* Top Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+            <span className="p-2 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 shadow-glow-cyan/20">
               <Mic className="w-4 h-4" />
             </span>
-            <h3 className="text-lg font-bold text-white tracking-tight">Full Voiceover Narration</h3>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold">
+            <h3 className="text-xl font-bold text-white tracking-tight">Full Voiceover Narration</h3>
+            <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">
               Recording Ready
             </span>
           </div>
           <p className="text-xs text-slate-400">
-            One cohesive, complete piece of written narrative text formatted for voice actors, teleprompters, or TTS.
+            Cohesive, broadcast-formatted narrative prose synchronized for voice actors and neural speech synthesis.
           </p>
         </div>
 
-        {/* View Toggle & Copy/Download Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* View Toggle & Copy/Download Buttons with Pop Accents */}
+        <div className="flex flex-wrap items-center gap-2.5">
           {/* Mode Switcher */}
-          <div className="inline-flex rounded-xl bg-background p-1 border border-border">
+          <div className="inline-flex rounded-xl bg-black/60 p-1 border border-white/[0.08]">
             <button
               type="button"
               onClick={() => setDisplayMode('clean')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 displayMode === 'clean'
-                  ? 'bg-surface text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-glow-cyan/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <AlignLeft className="w-3.5 h-3.5" />
-              Clean Prose
+              <span>Clean Prose</span>
             </button>
             <button
               type="button"
               onClick={() => setDisplayMode('annotated')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 displayMode === 'annotated'
-                  ? 'bg-surface text-white shadow-sm'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-glow-purple/30'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
               <ListOrdered className="w-3.5 h-3.5" />
-              Time-Coded
+              <span>Time-Coded</span>
             </button>
           </div>
 
-          <button
+          <AnimatedButton
             type="button"
+            variant="primary"
             onClick={handleCopy}
-            className="px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-glow-blue"
+            icon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            className="text-xs px-3.5 py-2 font-bold"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
-            {copied ? 'Copied Script' : 'Copy Full Script'}
-          </button>
+            {copied ? 'Copied Script' : 'Copy Script'}
+          </AnimatedButton>
 
-          <button
+          <AnimatedButton
             type="button"
+            variant="secondary"
             onClick={handleDownloadTxt}
-            className="px-3.5 py-1.5 rounded-xl bg-background hover:bg-surface-hover text-slate-300 hover:text-white border border-border text-xs font-semibold flex items-center gap-1.5 transition-all"
+            icon={<Download className="w-3.5 h-3.5 text-cyan-400" />}
+            className="text-xs px-3.5 py-2 font-semibold"
           >
-            <Download className="w-3.5 h-3.5 text-accent-cyan" />
             .TXT
-          </button>
+          </AnimatedButton>
 
           {onOpenInVoiceoverStudio && (
-            <button
+            <AnimatedButton
               type="button"
+              variant="cyber"
               onClick={onOpenInVoiceoverStudio}
-              className="px-3.5 py-1.5 rounded-xl bg-[#B4532A] hover:bg-[#9A4524] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
-              title="Cast a Nigerian or International narrator and produce broadcast audio"
+              icon={<Mic className="w-3.5 h-3.5 text-amber-300" />}
+              className="text-xs px-4 py-2 font-bold"
             >
-              <Mic className="w-3.5 h-3.5" />
               Open in Voiceover Studio →
-            </button>
+            </AnimatedButton>
           )}
         </div>
       </div>
 
-      {/* Script Teleprompter / Reader Card */}
-      <div className="relative bg-background/80 border border-border/80 rounded-xl p-6 sm:p-8 backdrop-blur-sm">
+      {/* Script Teleprompter / Reader Card with Pop Styling */}
+      <div className="relative bg-black/60 border border-white/[0.08] rounded-2xl p-6 sm:p-8 backdrop-blur-md shadow-inner">
         {displayMode === 'clean' ? (
-          <div className="prose prose-invert max-w-none text-slate-200 text-base sm:text-lg leading-relaxed font-sans space-y-4">
+          <div className="text-white text-base sm:text-lg leading-relaxed font-sans space-y-5">
             {cleanScript.split('\n\n').length > 1 ? (
               cleanScript.split('\n\n').map((para, idx) => (
-                <p key={idx} className="leading-relaxed text-slate-200">
+                <p key={idx} className="leading-relaxed text-slate-100 border-l-2 border-cyan-400/40 pl-4">
                   {para}
                 </p>
               ))
             ) : (
-              <p className="leading-relaxed text-slate-200">
+              <p className="leading-relaxed text-slate-100 border-l-2 border-cyan-400/40 pl-4">
                 {cleanScript}
               </p>
             )}
           </div>
         ) : (
-          <div className="space-y-4 font-mono text-sm">
+          <div className="space-y-4">
             {storyboard.scenes.map((scene) => (
               <div
                 key={scene.scene_number}
-                className="p-3.5 rounded-lg bg-surface/40 border border-border hover:border-slate-600 transition-colors"
+                className="p-4 rounded-xl bg-[#050C1F]/90 border border-white/[0.08] hover:border-cyan-400/40 transition-all space-y-2"
               >
-                <div className="flex items-center gap-2 mb-1.5 text-xs text-accent-cyan font-bold">
-                  <span className="px-2 py-0.5 rounded bg-background border border-border">
+                <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-mono font-bold">
                     {scene.timestamp_start} → {scene.timestamp_end}
                   </span>
-                  <span className="text-slate-400 font-normal">
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[10px]">
                     Scene #{scene.scene_number} ({scene.duration_seconds}s)
                   </span>
+                  {scene.chapter_title && (
+                    <span className="text-slate-400 font-sans text-xs italic">
+                      • {scene.chapter_title}
+                    </span>
+                  )}
                 </div>
-                <p className="text-slate-200 font-sans text-base leading-relaxed pl-1">
+                <p className="text-slate-100 text-sm sm:text-base leading-relaxed pl-1 font-serif">
                   {scene.narration_script}
                 </p>
               </div>
@@ -187,45 +196,45 @@ export const FullVoiceoverScript: React.FC<FullVoiceoverScriptProps> = ({
         )}
       </div>
 
-      {/* Production Teleprompter Meta Footer */}
+      {/* Production Teleprompter Meta Footer with Pop Colors */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-        <div className="p-3.5 rounded-xl bg-background border border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+        <div className="p-4 rounded-2xl bg-black/50 border border-cyan-500/20 flex items-center gap-3 shadow-md">
+          <div className="p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300">
             <FileText className="w-4 h-4" />
           </div>
           <div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Word Count</div>
-            <div className="text-sm font-bold text-white font-mono">{wordCount} words</div>
+            <div className="text-sm font-bold text-cyan-300 font-mono">{wordCount} words</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-background border border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-cyan/10 text-accent-cyan">
+        <div className="p-4 rounded-2xl bg-black/50 border border-amber-500/20 flex items-center gap-3 shadow-md">
+          <div className="p-2.5 rounded-xl bg-amber-500/15 border border-amber-400/30 text-amber-300">
             <Clock className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Est. Reading Time</div>
-            <div className="text-sm font-bold text-white font-mono">{estFormatted}</div>
+            <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Est. Spoken Time</div>
+            <div className="text-sm font-bold text-amber-300 font-mono">{estFormatted}</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-background border border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-accent-purple/10 text-accent-purple">
+        <div className="p-4 rounded-2xl bg-black/50 border border-purple-500/20 flex items-center gap-3 shadow-md">
+          <div className="p-2.5 rounded-xl bg-purple-500/15 border border-purple-400/30 text-purple-300">
             <Sparkles className="w-4 h-4" />
           </div>
           <div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Pacing Speed</div>
-            <div className="text-sm font-bold text-white font-mono">{pacingWpm} WPM</div>
+            <div className="text-sm font-bold text-purple-300 font-mono">{pacingWpm} WPM</div>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-background border border-border flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+        <div className="p-4 rounded-2xl bg-black/50 border border-emerald-500/20 flex items-center gap-3 shadow-md">
+          <div className="p-2.5 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-400">
             <Mic className="w-4 h-4" />
           </div>
           <div>
             <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Scene Segments</div>
-            <div className="text-sm font-bold text-white font-mono">{storyboard.scenes.length} Scenes</div>
+            <div className="text-sm font-bold text-emerald-400 font-mono">{storyboard.scenes.length} Scenes</div>
           </div>
         </div>
       </div>

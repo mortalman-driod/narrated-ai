@@ -19,26 +19,27 @@ import {
   Compass,
   Skull,
   Clock,
-  UserCheck
+  UserCheck,
+  Check
 } from 'lucide-react';
 
-const ICON_MAP: Record<string, React.ReactNode> = {
-  Zap: <Zap className="w-5 h-5 text-amber-400" />,
-  ShieldAlert: <ShieldAlert className="w-5 h-5 text-rose-400" />,
-  Landmark: <Landmark className="w-5 h-5 text-emerald-400" />,
-  Eye: <Eye className="w-5 h-5 text-cyan-400" />,
-  Flame: <Flame className="w-5 h-5 text-orange-400" />,
-  Smile: <Smile className="w-5 h-5 text-yellow-400" />,
-  Sliders: <Sliders className="w-5 h-5 text-purple-400" />,
-  BookOpen: <BookOpen className="w-5 h-5 text-amber-300" />,
-  Cross: <Cross className="w-5 h-5 text-rose-300" />,
-  Trophy: <Trophy className="w-5 h-5 text-yellow-400" />,
-  Activity: <Activity className="w-5 h-5 text-emerald-400" />,
-  Brain: <Brain className="w-5 h-5 text-purple-300" />,
-  Compass: <Compass className="w-5 h-5 text-sky-400" />,
-  Skull: <Skull className="w-5 h-5 text-slate-400" />,
-  Clock: <Clock className="w-5 h-5 text-indigo-400" />,
-  Sparkles: <Sparkles className="w-5 h-5 text-accent-cyan" />
+const ICON_MAP: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  Zap: { icon: <Zap className="w-5 h-5 text-amber-400" />, color: 'text-amber-400', bg: 'bg-amber-500/15 border-amber-500/30' },
+  ShieldAlert: { icon: <ShieldAlert className="w-5 h-5 text-rose-400" />, color: 'text-rose-400', bg: 'bg-rose-500/15 border-rose-500/30' },
+  Landmark: { icon: <Landmark className="w-5 h-5 text-emerald-400" />, color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30' },
+  Eye: { icon: <Eye className="w-5 h-5 text-cyan-400" />, color: 'text-cyan-400', bg: 'bg-cyan-500/15 border-cyan-400/30' },
+  Flame: { icon: <Flame className="w-5 h-5 text-orange-400" />, color: 'text-orange-400', bg: 'bg-orange-500/15 border-orange-500/30' },
+  Smile: { icon: <Smile className="w-5 h-5 text-yellow-400" />, color: 'text-yellow-400', bg: 'bg-yellow-500/15 border-yellow-500/30' },
+  Sliders: { icon: <Sliders className="w-5 h-5 text-purple-400" />, color: 'text-purple-400', bg: 'bg-purple-500/15 border-purple-500/30' },
+  BookOpen: { icon: <BookOpen className="w-5 h-5 text-amber-300" />, color: 'text-amber-300', bg: 'bg-amber-500/15 border-amber-500/30' },
+  Cross: { icon: <Cross className="w-5 h-5 text-rose-300" />, color: 'text-rose-300', bg: 'bg-rose-500/15 border-rose-500/30' },
+  Trophy: { icon: <Trophy className="w-5 h-5 text-yellow-400" />, color: 'text-yellow-400', bg: 'bg-yellow-500/15 border-yellow-500/30' },
+  Activity: { icon: <Activity className="w-5 h-5 text-emerald-400" />, color: 'text-emerald-400', bg: 'bg-emerald-500/15 border-emerald-500/30' },
+  Brain: { icon: <Brain className="w-5 h-5 text-purple-300" />, color: 'text-purple-300', bg: 'bg-purple-500/15 border-purple-500/30' },
+  Compass: { icon: <Compass className="w-5 h-5 text-sky-400" />, color: 'text-sky-400', bg: 'bg-sky-500/15 border-sky-400/30' },
+  Skull: { icon: <Skull className="w-5 h-5 text-slate-400" />, color: 'text-slate-400', bg: 'bg-slate-500/15 border-slate-500/30' },
+  Clock: { icon: <Clock className="w-5 h-5 text-indigo-400" />, color: 'text-indigo-400', bg: 'bg-indigo-500/15 border-indigo-500/30' },
+  Sparkles: { icon: <Sparkles className="w-5 h-5 text-cyan-400" />, color: 'text-cyan-400', bg: 'bg-cyan-500/15 border-cyan-400/30' }
 };
 
 interface NicheSelectorProps {
@@ -62,80 +63,93 @@ export const NicheSelector: React.FC<NicheSelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Category Pills Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-accent-purple" />
-          Content Niche & Character Style
+      {/* Category Header & Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+        <label className="text-sm font-bold text-white flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-purple-400" />
+          <span>Production Genre & Visual Style</span>
         </label>
-        <span className="text-xs text-slate-400">
-          Showing {filteredNiches.length} of {allNiches.length} Viral Niches
-        </span>
+
+        {/* Category Filter Pills with Pop Colors */}
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-black/50 border border-white/[0.08] rounded-xl">
+          {NICHE_CATEGORIES.map((cat) => {
+            const isActive = activeCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                disabled={disabled}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-all ${
+                  isActive
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-glow-cyan/30'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                {cat.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Category Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 pb-1">
-        {NICHE_CATEGORIES.map((cat) => {
-          const isActive = activeCategory === cat.id;
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              disabled={disabled}
-              onClick={() => setActiveCategory(cat.id)}
-              className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all ${
-                isActive
-                  ? 'bg-primary/20 text-accent-cyan border-accent-cyan/40 shadow-sm'
-                  : 'bg-background/80 text-slate-400 border-border hover:text-white hover:bg-surface-hover'
-              }`}
-            >
-              {cat.label}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Grid of Niche Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+      {/* Spacious Listed Rows (Listed Out instead of crowded grid) */}
+      <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
         {filteredNiches.map((niche) => {
           const isSelected = selectedNicheId === niche.id;
+          const iconMeta = ICON_MAP[niche.iconName] || {
+            icon: <Sparkles className="w-5 h-5 text-cyan-400" />,
+            color: 'text-cyan-400',
+            bg: 'bg-cyan-500/15 border-cyan-400/30'
+          };
+
           return (
-            <div key={niche.id} className="h-full">
-              <div
-                onClick={() => !disabled && onSelectNiche(niche.id)}
-                className={`p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer relative overflow-hidden flex flex-col justify-between h-full backdrop-blur-sm ${
-                  isSelected
-                    ? 'bg-gradient-to-b from-[#08152B] to-[#040B17] border-cyan-400 shadow-glow-cyan/30 ring-1 ring-cyan-400/60 scale-[1.02]'
-                    : 'bg-[#030714]/80 border-white/[0.08] hover:border-slate-500 hover:bg-[#060D1E]/80 hover:translate-y-[-2px]'
-                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="p-2 rounded-xl bg-black/40 border border-white/[0.08] shadow-inner">
-                      {ICON_MAP[niche.iconName] || <Sparkles className="w-5 h-5 text-cyan-400" />}
-                    </div>
-                    <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-black/40 border border-white/[0.08] text-slate-300">
+            <div
+              key={niche.id}
+              onClick={() => !disabled && onSelectNiche(niche.id)}
+              className={`p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-4 backdrop-blur-xl ${
+                isSelected
+                  ? 'bg-gradient-to-r from-[#06152F] via-[#041024] to-[#020914] border-cyan-400 shadow-glow-cyan/20 ring-1 ring-cyan-400/60'
+                  : 'bg-[#030714]/80 border-white/[0.07] hover:border-white/20 hover:bg-[#060E22]/80'
+              } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              {/* Left: Pop Icon + Info */}
+              <div className="flex items-center gap-3.5 flex-1 min-w-0">
+                <div className={`p-2.5 rounded-xl border shrink-0 ${iconMeta.bg} shadow-md`}>
+                  {iconMeta.icon}
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                    <h4 className="text-sm font-bold text-white tracking-tight truncate">
+                      {niche.name}
+                    </h4>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 font-semibold uppercase">
                       {niche.badge}
                     </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 flex items-center gap-1">
+                      <UserCheck className="w-3 h-3" />
+                      Character Consistency
+                    </span>
                   </div>
-                  <h4 className="text-sm font-bold text-white mb-1 tracking-tight">{niche.name}</h4>
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-400 line-clamp-1 leading-relaxed">
                     {niche.description}
                   </p>
                 </div>
+              </div>
 
-                <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[11px]">
-                  <span className="text-slate-400 flex items-center gap-1">
-                    <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-                    Consistent Character
+              {/* Right: Select Action with Pop Glow */}
+              <div className="flex items-center gap-2.5 shrink-0 sm:self-center">
+                {isSelected ? (
+                  <span className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-glow-cyan/40">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>Selected</span>
                   </span>
-                  {isSelected && (
-                    <span className="text-cyan-300 font-semibold flex items-center gap-1.5 font-mono text-[11px]">
-                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                      ACTIVE
-                    </span>
-                  )}
-                </div>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-xl border border-white/[0.08] hover:border-cyan-400/40 bg-black/40 transition-colors">
+                    Select
+                  </span>
+                )}
               </div>
             </div>
           );

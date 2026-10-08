@@ -27,61 +27,63 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene }) => {
   };
 
   return (
-    <Card3D maxTilt={6} className="h-full">
-      <div className="bg-[#030714]/85 border border-white/[0.08] hover:border-cyan-500/50 rounded-2xl p-5 transition-all duration-300 shadow-xl hover:shadow-cyan-500/10 backdrop-blur-md flex flex-col justify-between h-full group">
+    <Card3D maxTilt={3} className="w-full">
+      <div className="bg-[#030714]/85 border border-white/[0.08] hover:border-cyan-500/50 rounded-2xl p-5 sm:p-6 transition-all duration-300 shadow-xl backdrop-blur-xl flex flex-col justify-between space-y-4">
         <div>
           {/* Top Header */}
-          <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.06]">
-            <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 text-cyan-300 font-bold text-xs flex items-center justify-center border border-cyan-400/30 shadow-glow-cyan/20">
-                {scene.scene_number.toString().padStart(2, '0')}
+          <div className="flex flex-wrap items-center justify-between pb-3 mb-3 border-b border-white/[0.08] gap-2">
+            <div className="flex items-center gap-3">
+              <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-glow-cyan/30 shrink-0">
+                #{scene.scene_number.toString().padStart(2, '0')}
               </span>
               {scene.chapter_title && (
-                <span className="text-xs text-slate-300 font-medium truncate max-w-[180px]">
+                <span className="text-sm text-white font-bold tracking-tight">
                   {scene.chapter_title}
                 </span>
               )}
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 font-mono text-[11px] px-2.5 py-1 rounded-full bg-black/40 border border-white/[0.08] text-cyan-300">
+              <div className="flex items-center gap-1 font-mono text-[11px] px-3 py-1 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-cyan-300 font-bold">
                 <span>{scene.timestamp_start}</span>
-                <span className="text-slate-500">➔</span>
+                <span className="text-slate-400">➔</span>
                 <span>{scene.timestamp_end}</span>
               </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                {scene.duration_seconds}s
+              <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
+                {scene.duration_seconds}s cut
               </span>
             </div>
           </div>
 
-          {/* Voiceover Script */}
+          {/* Voiceover Script Block with Pop Styling */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
                 <Mic className="w-3.5 h-3.5 text-emerald-400" />
-                Narration Voiceover ({wordCount} words)
+                <span>Synchronized Voiceover ({wordCount} words)</span>
               </span>
               <button
                 type="button"
                 onClick={() => copyToClipboard(scene.narration_script, false)}
-                className="text-[11px] text-slate-400 hover:text-white flex items-center gap-1 transition-colors px-2 py-0.5 rounded-md hover:bg-white/5"
+                className="text-[11px] text-emerald-300 hover:text-white flex items-center gap-1 transition-colors px-2 py-0.5 rounded-md hover:bg-emerald-500/10 font-medium"
               >
                 {copiedScript ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                {copiedScript ? 'Copied' : 'Copy line'}
+                {copiedScript ? 'Copied' : 'Copy narration'}
               </button>
             </div>
-            <p className="text-sm text-slate-100 font-sans leading-relaxed bg-black/30 p-3 rounded-xl border border-white/[0.06] italic">
-              "{scene.narration_script}"
-            </p>
+            <div className="border-l-4 border-emerald-400 bg-black/60 p-3.5 rounded-xl border border-white/[0.08]">
+              <p className="text-sm text-white font-sans leading-relaxed italic">
+                "{scene.narration_script}"
+              </p>
+            </div>
           </div>
 
-          {/* Visual Prompt for Diffusion Model */}
-          <div className="mb-3">
+          {/* Visual Prompt for Diffusion Model with Pop Styling */}
+          <div>
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
+              <span className="text-xs font-bold text-purple-400 flex items-center gap-1.5">
                 <Video className="w-3.5 h-3.5 text-purple-400" />
-                Visual Prompt (Diffusion Model)
+                <span>Diffusion Prompt ({scene.camera_direction})</span>
               </span>
               <button
                 type="button"
@@ -92,20 +94,20 @@ export const SceneCard: React.FC<SceneCardProps> = ({ scene }) => {
                 {copiedPrompt ? 'Copied Prompt' : 'Copy prompt'}
               </button>
             </div>
-            <div className="relative group/prompt">
-              <p className="text-xs text-slate-300 font-mono bg-black/40 p-3 rounded-xl border border-white/[0.06] leading-relaxed line-clamp-3 group-hover/prompt:line-clamp-none transition-all">
+            <div className="border-l-4 border-purple-500 bg-black/60 p-3.5 rounded-xl border border-white/[0.08]">
+              <p className="text-xs text-slate-200 font-mono leading-relaxed">
                 {scene.visual_prompt}
               </p>
             </div>
           </div>
         </div>
 
-        {/* Camera Direction Pill */}
-        <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
-          <span className="flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="text-slate-400">Motion:</span>
-            <span className="text-slate-200 font-medium italic truncate">{scene.camera_direction}</span>
+        {/* Camera Direction / Motion Pill */}
+        <div className="pt-3 border-t border-white/[0.08] flex items-center justify-between text-xs">
+          <span className="flex items-center gap-2 text-slate-400">
+            <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+            <span className="text-slate-400">Cinematography:</span>
+            <span className="text-cyan-300 font-semibold italic truncate">{scene.camera_direction}</span>
           </span>
         </div>
       </div>

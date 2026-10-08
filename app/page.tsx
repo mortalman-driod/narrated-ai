@@ -19,12 +19,12 @@ import {
   Clock,
   UserCheck,
   Image as ImageIcon,
-  Columns,
-  RefreshCw,
+  Check,
+  Volume2,
   CheckCircle2,
-  Volume2
+  Radio
 } from 'lucide-react';
-import { NICHE_PRESETS, TONE_OPTIONS, IMAGE_MODELS } from '@/lib/presets';
+import { TONE_OPTIONS, IMAGE_MODELS } from '@/lib/presets';
 import { DurationSlider } from '@/components/DurationSlider';
 import { NicheSelector } from '@/components/NicheCard';
 import { SceneCard } from '@/components/SceneCard';
@@ -43,18 +43,9 @@ import { AnimatedButton } from '@/components/ui/AnimatedButton';
 import { SlideTabs } from '@/components/ui/SlideTabs';
 import { SoundWaveVisualizer } from '@/components/ui/SoundWaveVisualizer';
 
-const SAMPLE_PROMPTS = [
-  'David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith',
-  '1998 World Cup Final: Zidane’s Iconic Double & The Brazilian Heartbreak',
-  'Charles Finney & The Rochester Revival: The Spark that Transformed America',
-  'The Shadow Self: Carl Jung & Why We Project Our Darkest Traits',
-  'The Sunken City of Dwarka: The 9,000-Year Lost Underwater Realm',
-  'The Dyatlov Pass Incident: What really happened on Dead Mountain'
-];
-
 export default function DashboardPage() {
-  // Master Studio Layout State: 'dual' (split screen side-by-side) | 'architect' | 'voiceover'
-  const [studioLayout, setStudioLayout] = useState<'dual' | 'architect' | 'voiceover'>('architect');
+  // Navigation: Instant seamless switching between Prompt Architect and Voiceover Studio (both stay mounted in DOM!)
+  const [activeTab, setActiveTab] = useState<'architect' | 'voiceover'>('architect');
 
   // Input & Project State
   const [topic, setTopic] = useState('David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith');
@@ -67,7 +58,7 @@ export default function DashboardPage() {
   // Synchronized Voice Talent State
   const [selectedVoice, setSelectedVoice] = useState<VoiceProfile>(LAUNCH_VOICES[0]);
 
-  // Synchronized Master Script State (Single source of truth shared between Architect & Voiceover Studio)
+  // Synchronized Master Script (Shared real-time between Architect & Voiceover Studio)
   const [sharedScript, setSharedScript] = useState<string>(
     `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.
 
@@ -76,7 +67,7 @@ A young shepherd named David, bearing grain for his brothers, refused to surrend
 Reaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
   );
 
-  // Input Mode in Prompt Architect: 'premise' (generate narrative from premise) vs 'voiceover' (direct voiceover input)
+  // Input Mode in Prompt Architect: 'premise' (generate narrative from premise) vs 'voiceover' (input existing voiceover narration)
   const [inputMode, setInputMode] = useState<'premise' | 'voiceover'>('premise');
   const [isDictating, setIsDictating] = useState(false);
 
@@ -88,8 +79,8 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
     message: ''
   });
   const [storyboard, setStoryboard] = useState<StoryboardResponse | null>(null);
-  const [activeTab, setActiveTab] = useState<'voiceover' | 'visuals' | 'timeline'>('voiceover');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
+  const [storyboardViewTab, setStoryboardViewTab] = useState<'voiceover' | 'visuals' | 'timeline'>('voiceover');
+  const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [showOutline, setShowOutline] = useState(false);
 
@@ -108,7 +99,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Speech recognition is not supported in this browser. Please type or paste your voiceover script.');
+      alert('Speech recognition is not supported in this browser. Please type or paste your script.');
       return;
     }
 
@@ -181,7 +172,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
       }
 
       setStoryboard(data.storyboard);
-      // Synchronize generated full script with shared script for the Voiceover Studio
+      // Synchronize full script to Voiceover Studio
       if (data.storyboard?.full_script) {
         setSharedScript(data.storyboard.full_script);
       }
@@ -194,13 +185,13 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
           : 'Gemini storyboard generation complete!'
       });
 
-      // Interactive celebratory confetti burst
+      // Celebratory confetti burst
       try {
         confetti({
-          particleCount: 100,
-          spread: 80,
+          particleCount: 110,
+          spread: 90,
           origin: { y: 0.6 },
-          colors: ['#06B6D4', '#3B82F6', '#A855F7', '#F59E0B', '#10B981']
+          colors: ['#06B6D4', '#3B82F6', '#A855F7', '#F59E0B', '#10B981', '#F43F5E']
         });
       } catch {}
     } catch (err: any) {
@@ -210,66 +201,56 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
     }
   };
 
-  // Synchronized Bridge: Send script from Voiceover Studio into Architect
-  const handleSendToArchitect = (script: string) => {
-    setSharedScript(script);
-    setInputMode('voiceover');
-    setStudioLayout('architect');
-  };
-
   return (
     <div className="min-h-screen bg-[#020408] text-slate-100 flex flex-col relative overflow-x-hidden selection:bg-cyan-500/30 selection:text-cyan-200">
-      {/* Interactive 3D Canvas Constellation Perspective Background */}
+      {/* 3D Perspective Constellation Background */}
       <ThreeDCanvas />
 
       {/* Top Navbar */}
-      <header className="border-b border-white/[0.06] bg-[#02050E]/90 backdrop-blur-2xl sticky top-0 z-40 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xl">
-        <div className="flex items-center gap-3 relative z-10">
+      <header className="border-b border-white/[0.06] bg-[#02050E]/90 backdrop-blur-2xl sticky top-0 z-40 px-6 sm:px-10 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl">
+        <div className="flex items-center gap-3.5 relative z-10">
           <motion.div
             whileHover={{ rotateY: 180, scale: 1.05 }}
             transition={{ duration: 0.6 }}
-            className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-glow-cyan shrink-0 border border-white/20"
+            className="w-11 h-11 rounded-2xl bg-gradient-to-br from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center shadow-glow-cyan shrink-0 border border-white/20"
           >
             <Film className="w-5 h-5 text-white" />
           </motion.div>
           <div>
-            <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
+              <span className="bg-gradient-to-r from-white via-cyan-100 to-slate-400 bg-clip-text text-transparent">
                 NARRATED AI
               </span>
-              <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-semibold shadow-sm">
+              <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-400/30 font-bold shadow-sm">
                 SYNCHRONIZED STUDIO
               </span>
             </h1>
-            <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <p className="text-xs text-slate-400 flex items-center gap-2">
               <span>Timestamped Scripts • 4–8s Diffusion Scenes • Neural Voiceovers</span>
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             </p>
           </div>
         </div>
 
-        {/* Master Studio Layout Switcher & Engine Mode */}
+        {/* Platform Switcher Tabs & Engine Selector */}
         <div className="flex flex-wrap items-center gap-3 relative z-10">
-          {/* Studio Layout Switcher (Dual Split, Architect Focus, Voiceover Focus) */}
+          {/* Seamless Instant Tab Switcher (Both sections stay loaded and live!) */}
           <SlideTabs
             tabs={[
-              { id: 'dual', label: 'Dual Studio', icon: <Columns className="w-3.5 h-3.5 text-emerald-400" />, badge: 'SPLIT' },
-              { id: 'architect', label: 'Prompt Architect', icon: <Film className="w-3.5 h-3.5 text-cyan-400" /> },
-              { id: 'voiceover', label: 'Voiceover Studio', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
+              { id: 'architect', label: 'Prompt & Storyboard Architect', icon: <Film className="w-4 h-4 text-cyan-400" /> },
+              { id: 'voiceover', label: 'Voiceover Studio & Audio Engine', icon: <Mic className="w-4 h-4 text-amber-300" />, badge: 'TTS' }
             ]}
-            activeId={studioLayout}
-            onChange={(id) => setStudioLayout(id as any)}
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as any)}
             indicatorClassName={
-              studioLayout === 'dual'
-                ? 'bg-gradient-to-r from-emerald-600 to-cyan-600 shadow-glow-cyan/40'
-                : studioLayout === 'architect'
-                ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/40'
-                : 'bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/40'
+              activeTab === 'architect'
+                ? 'bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 shadow-glow-cyan/40'
+                : 'bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 shadow-glow-amber/40'
             }
           />
 
-          {/* Engine Mode Toggle */}
-          <div className="inline-flex rounded-xl bg-black/50 p-1 border border-white/[0.08] backdrop-blur-md">
+          {/* Cloud vs Offline Mode Toggle */}
+          <div className="inline-flex rounded-xl bg-black/60 p-1 border border-white/[0.08] backdrop-blur-md">
             <button
               type="button"
               onClick={() => setEngineMode('cloud')}
@@ -278,7 +259,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                   ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Uses Google Gemini"
+              title="Google Gemini Cloud AI"
             >
               <Sparkles className="w-3 h-3 text-cyan-400" />
               <span>Cloud</span>
@@ -291,7 +272,7 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
                   ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-sm'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="100% Offline / Zero API"
+              title="100% Offline / Zero API Engine"
             >
               <Zap className="w-3 h-3 text-emerald-400" />
               <span>Offline</span>
@@ -300,788 +281,527 @@ Reaching into the dry brook, he selected five smooth stones. With only his sling
         </div>
       </header>
 
-      {/* Synchronized Master Status & Project Pill Bar */}
-      <div className="bg-[#030611]/90 border-b border-white/[0.06] px-4 sm:px-6 py-2.5 relative z-20 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-              <span>SYNCHRONIZED</span>
+      {/* Synchronized Master Status Pill Bar with Pop Colors */}
+      <div className="bg-[#030714]/90 border-b border-white/[0.06] px-6 sm:px-10 py-3 relative z-20 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-mono text-[11px] font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <span>● LIVE SYNCHRONIZED</span>
             </span>
 
-            <span className="text-slate-300 font-semibold truncate max-w-xs sm:max-w-md">
-              Project: <span className="text-white">{storyboard?.title || topic}</span>
+            <span className="text-slate-300 font-semibold truncate max-w-sm sm:max-w-md">
+              Project: <span className="text-white font-bold">{storyboard?.title || topic}</span>
             </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-[11px]">
-            <span className="text-slate-300">{inputWords} words</span>
+          <div className="flex flex-wrap items-center gap-3 text-slate-400 font-mono text-xs">
+            <span className="text-cyan-300 font-bold">{inputWords} words</span>
             <span>•</span>
-            <span className="text-amber-300">~{calculatedDuration}s spoken runtime</span>
+            <span className="text-amber-300 font-bold">~{calculatedDuration}s spoken audio</span>
             <span>•</span>
-            <span className="text-cyan-300">{estimatedScenes} scenes (~7.5s/cut)</span>
+            <span className="text-purple-300 font-bold">{estimatedScenes} visual scenes</span>
             <span>•</span>
-            <span className="text-purple-300 flex items-center gap-1">
-              <Volume2 className="w-3 h-3" />
+            <span className="text-emerald-300 font-bold flex items-center gap-1">
+              <Volume2 className="w-3.5 h-3.5" />
               <span>Narrator: {selectedVoice.name} ({selectedVoice.accent.split(' ')[0]})</span>
             </span>
           </div>
         </div>
       </div>
 
-      {/* Main Studio Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 relative z-10">
-        {studioLayout === 'dual' ? (
-          /* ======================================================== */
-          /* ⚡ DUAL STUDIO (SPLIT SCREEN SYNCHRONIZED WORKSTATION)    */
-          /* ======================================================== */
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-            {/* Left Column (Col 1-7): Narrative & Diffusion Architect */}
-            <div className="xl:col-span-7 space-y-6">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-                <div className="flex items-center gap-2">
-                  <Film className="w-4 h-4 text-cyan-400" />
-                  <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
-                    Visual & Diffusion Architect
+      {/* Main Studio Content Area: Spacious, Clean, Both Sections Kept Alive */}
+      <main className="flex-1 max-w-6xl w-full mx-auto p-6 sm:p-10 relative z-10 space-y-10">
+        {/* ======================================================== */}
+        {/* SECTION 1: PROMPT & STORYBOARD ARCHITECT                  */}
+        {/* (Kept mounted in DOM so zero state is lost when toggling)  */}
+        {/* ======================================================== */}
+        <div className={activeTab === 'architect' ? 'space-y-10' : 'hidden'}>
+          {/* Narrative & Diffusion Architect Studio Box */}
+          <Card3D maxTilt={2} glare={false}>
+            <section className="bg-[#030714]/85 border border-white/[0.08] rounded-3xl p-8 sm:p-10 space-y-8 backdrop-blur-2xl shadow-2xl">
+              {/* Studio Heading & Diffusion Target */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-5">
+                <div>
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
+                    <SlidersHorizontal className="w-5 h-5 text-cyan-400" />
+                    <span>Narrative & Diffusion Architect</span>
                   </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Generate viral storyboards with 4–8s scene cuts and matching image diffusion prompts.
+                  </p>
                 </div>
-                <span className="text-[11px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-400/20">
-                  Target: {imageModel.toUpperCase()}
-                </span>
-              </div>
 
-              {/* Architect Studio Controls */}
-              <Card3D maxTilt={2} glare={false}>
-                <section className="bg-[#030714]/85 border border-white/[0.07] rounded-3xl p-5 sm:p-6 space-y-5 shadow-2xl backdrop-blur-xl">
-                  {/* Sliding Workflow Mode Selector */}
-                  <div className="flex items-center justify-between gap-3 p-1 bg-black/50 border border-white/[0.08] rounded-2xl">
-                    <SlideTabs
-                      tabs={[
-                        { id: 'premise', label: 'Story Premise', icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> },
-                        { id: 'voiceover', label: 'Direct Script', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
-                      ]}
-                      activeId={inputMode}
-                      onChange={(id) => setInputMode(id as any)}
-                      layoutId="dual-workflow-indicator"
-                      indicatorClassName={
-                        inputMode === 'premise'
-                          ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/30'
-                          : 'bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/30'
-                      }
-                    />
-                    <span className="text-[11px] font-mono text-slate-400 pr-3 hidden sm:inline">
-                      {inputMode === 'premise' ? 'Synthesize from premise' : 'Exact words locked'}
-                    </span>
-                  </div>
-
-                  {inputMode === 'voiceover' ? (
-                    <div className="space-y-3 bg-black/40 p-4 rounded-2xl border border-amber-500/25">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                          <Mic className="w-3.5 h-3.5 text-amber-300" />
-                          <span>Voiceover Narration Script</span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <AnimatedButton
-                            type="button"
-                            variant={isDictating ? 'danger' : 'secondary'}
-                            onClick={toggleDictation}
-                            icon={<Mic className={`w-3 h-3 ${isDictating ? 'text-white' : 'text-rose-400'}`} />}
-                            className="text-[11px] px-2.5 py-1"
-                          >
-                            {isDictating ? 'Listening...' : 'Mic Dictation'}
-                          </AnimatedButton>
-                          {isDictating && <SoundWaveVisualizer isPlaying={true} barCount={6} color="from-rose-400 to-amber-400" />}
-                        </div>
-                      </div>
-                      <textarea
-                        rows={6}
-                        value={sharedScript}
-                        onChange={(e) => setSharedScript(e.target.value)}
-                        placeholder="Paste or dictate your full voiceover script here..."
-                        className="w-full bg-black/60 border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-400 leading-relaxed"
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-slate-200">Story Premise / Subject Matter</label>
-                      <textarea
-                        rows={3}
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        placeholder="Type a premise (e.g. David vs Goliath: The Valley of Elah...)"
-                        className="w-full bg-black/50 border border-white/[0.08] rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 leading-relaxed"
-                      />
-                      {/* Inspirations */}
-                      <div className="flex flex-wrap items-center gap-1 pt-1">
-                        {SAMPLE_PROMPTS.slice(0, 3).map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => setTopic(p)}
-                            className="text-[10px] bg-black/40 hover:bg-white/10 text-slate-400 hover:text-cyan-300 px-2.5 py-0.5 rounded-lg border border-white/[0.08] truncate max-w-[200px]"
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {inputMode === 'premise' && (
-                    <DurationSlider
-                      value={duration}
-                      onChange={setDuration}
-                      disabled={isGenerating}
-                    />
-                  )}
-
-                  <NicheSelector
-                    selectedNicheId={nicheId}
-                    onSelectNiche={setNicheId}
-                    disabled={isGenerating}
-                  />
-
-                  {/* Diffusion Target & Generate Buttons */}
-                  <div className="pt-3 border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-400">Diffusion:</span>
-                      <div className="inline-flex rounded-lg bg-black/40 p-0.5 border border-white/[0.08]">
-                        {IMAGE_MODELS.map((m) => (
-                          <button
-                            key={m.id}
-                            type="button"
-                            onClick={() => setImageModel(m.id as any)}
-                            className={`px-2 py-0.5 text-[11px] font-semibold rounded-md transition-all ${
-                              imageModel === m.id ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-400/30' : 'text-slate-400'
-                            }`}
-                          >
-                            {m.name.split(' ')[0]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <AnimatedButton
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-medium">Diffusion Target:</span>
+                  <div className="inline-flex rounded-xl bg-black/60 p-1 border border-white/[0.08]">
+                    {IMAGE_MODELS.map((m) => (
+                      <button
+                        key={m.id}
                         type="button"
-                        variant="secondary"
-                        disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
-                        onClick={() => handleGenerate(true)}
-                        icon={<Zap className="w-3.5 h-3.5 text-emerald-400" />}
-                        className="text-xs px-3 py-2"
+                        onClick={() => setImageModel(m.id as any)}
+                        className={`px-3.5 py-1 text-xs font-bold rounded-lg transition-all ${
+                          imageModel === m.id
+                            ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-glow-cyan/40'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
                       >
-                        Offline (0 API)
-                      </AnimatedButton>
-
-                      <AnimatedButton
-                        type="button"
-                        variant={isDirectVoiceover ? 'cyber' : 'primary'}
-                        shimmer={true}
-                        disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
-                        onClick={() => handleGenerate(false)}
-                        icon={<Sparkles className="w-3.5 h-3.5 text-cyan-200" />}
-                        className="text-xs px-4 py-2 font-bold"
-                      >
-                        {isGenerating ? 'Synthesizing...' : `Generate Storyboard (${estimatedScenes} Scenes)`}
-                      </AnimatedButton>
-                    </div>
-                  </div>
-                </section>
-              </Card3D>
-
-              {/* Progress Tracker */}
-              <ProgressTracker
-                stage={progress.stage}
-                percent={progress.percent}
-                message={progress.message}
-                isGenerating={isGenerating}
-              />
-
-              {/* Generated Storyboard Output */}
-              {storyboard && (
-                <div className="space-y-4">
-                  <div className="bg-[#030714]/90 border border-cyan-500/30 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xl backdrop-blur-xl">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 uppercase font-bold">
-                          {storyboard.niche}
-                        </span>
-                        <span className="text-xs text-slate-400 font-mono">
-                          {storyboard.total_scenes} scenes • {storyboard.total_duration}
-                        </span>
-                      </div>
-                      <h3 className="text-lg font-bold text-white mt-1">{storyboard.title}</h3>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <AnimatedButton
-                        type="button"
-                        variant="primary"
-                        onClick={() => setIsExportOpen(true)}
-                        icon={<Download className="w-3.5 h-3.5" />}
-                        className="text-xs px-3 py-1.5"
-                      >
-                        Export
-                      </AnimatedButton>
-                    </div>
-                  </div>
-
-                  {/* Scene Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {storyboard.scenes.map((scene) => (
-                      <SceneCard key={scene.scene_number} scene={scene} />
+                        {m.name.split(' ')[0]}
+                      </button>
                     ))}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
 
-            {/* Right Column (Col 8-12): Synchronized Voiceover Studio */}
-            <div className="xl:col-span-5 space-y-6">
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-                <div className="flex items-center gap-2">
-                  <Mic className="w-4 h-4 text-amber-300" />
-                  <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
-                    Voiceover & Audio Engine
-                  </h2>
-                </div>
-                <span className="text-[11px] font-mono text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-400/20">
-                  Voice: {selectedVoice.name}
+              {/* Sliding Workflow Mode Selector */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 bg-black/60 border border-white/[0.08] rounded-2xl backdrop-blur-md">
+                <SlideTabs
+                  tabs={[
+                    { id: 'premise', label: 'Story Premise Mode', icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> },
+                    { id: 'voiceover', label: 'Direct Voiceover Script Mode', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
+                  ]}
+                  activeId={inputMode}
+                  onChange={(id) => setInputMode(id as any)}
+                  layoutId="studio-workflow-indicator"
+                  indicatorClassName={
+                    inputMode === 'premise'
+                      ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/30'
+                      : 'bg-gradient-to-r from-amber-600 via-rose-500 to-amber-600 shadow-glow-amber/30'
+                  }
+                />
+                <span className="text-xs font-mono text-slate-400 px-3 hidden sm:inline">
+                  {inputMode === 'premise'
+                    ? 'AI generates full narrative script from premise'
+                    : 'Preserves your exact voiceover words & generates matched scenes'}
                 </span>
               </div>
 
-              {/* Voiceover Studio Component */}
-              <VoiceoverStudio
-                initialScript={sharedScript}
-                initialTopic={storyboard?.title || topic}
-                currentVoice={selectedVoice}
-                onScriptChange={(script) => setSharedScript(script)}
-                onVoiceChange={(v) => setSelectedVoice(v)}
-                onSendToArchitect={handleSendToArchitect}
-              />
-            </div>
-          </div>
-        ) : studioLayout === 'voiceover' ? (
-          /* ======================================================== */
-          /* 🎙️ FULL-WIDTH VOICEOVER STUDIO FOCUS                      */
-          /* ======================================================== */
-          <motion.div
-            key="voiceover-focus"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-6"
-          >
-            <VoiceoverStudio
-              initialScript={storyboard?.full_script || sharedScript}
-              initialTopic={storyboard?.title || topic}
-              currentVoice={selectedVoice}
-              onScriptChange={(script) => setSharedScript(script)}
-              onVoiceChange={(v) => setSelectedVoice(v)}
-              onSendToArchitect={handleSendToArchitect}
-            />
-          </motion.div>
-        ) : (
-          /* ======================================================== */
-          /* 🎬 FULL-WIDTH PROMPT ARCHITECT FOCUS                      */
-          /* ======================================================== */
-          <motion.div
-            key="architect-focus"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-            className="space-y-8"
-          >
-            {/* Creator Control Studio */}
-            <Card3D maxTilt={3} glare={false}>
-              <section className="bg-[#030714]/85 border border-white/[0.07] rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden backdrop-blur-2xl shadow-2xl">
-                {/* Section Heading & Diffusion Target */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
-                  <div>
-                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                      <SlidersHorizontal className="w-5 h-5 text-cyan-400" />
-                      <span>Narrative & Diffusion Architect</span>
-                    </h2>
-                    <p className="text-xs text-slate-400">
-                      Generate viral documentary storyboards, synchronized 4–8s scene pacing, and diffusion prompts.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400">Diffusion Target:</span>
-                    <div className="inline-flex rounded-xl bg-black/50 p-1 border border-white/[0.08]">
-                      {IMAGE_MODELS.map((m) => (
-                        <button
-                          key={m.id}
+              {/* Dynamic Input Panel */}
+              <AnimatePresence mode="wait">
+                {inputMode === 'voiceover' ? (
+                  /* MODE 1: Direct Voiceover Input with Pop Colors */
+                  <motion.div
+                    key="voiceover-segment"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="bg-[#040A1A]/90 border border-amber-500/30 rounded-2xl p-6 sm:p-8 space-y-5 shadow-2xl relative"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                            Direct Voiceover Input
+                          </span>
+                          <span className="text-xs text-slate-400">
+                            Your exact words preserved • Synchronized 4–8s scene cuts
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-white mt-1 flex items-center gap-2.5">
+                          <span>Input Your Voiceover Narration</span>
+                          {isDictating && <SoundWaveVisualizer isPlaying={true} barCount={8} color="from-rose-400 to-amber-400" />}
+                        </h3>
+                      </div>
+
+                      {/* Toolbar */}
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <AnimatedButton
                           type="button"
-                          onClick={() => setImageModel(m.id as any)}
-                          className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                            imageModel === m.id
-                              ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-glow-cyan/30'
-                              : 'text-slate-400 hover:text-white'
-                          }`}
+                          variant={isDictating ? 'danger' : 'secondary'}
+                          onClick={toggleDictation}
+                          icon={<Mic className={`w-3.5 h-3.5 ${isDictating ? 'text-white' : 'text-rose-400'}`} />}
+                          className={isDictating ? 'animate-pulse-halo' : ''}
                         >
-                          {m.name.split(' ')[0]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                          {isDictating ? 'Listening... (Click to stop)' : 'Dictate with Mic'}
+                        </AnimatedButton>
 
-                {/* Sliding Workflow Mode Selector */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-1.5 bg-black/50 border border-white/[0.08] rounded-2xl backdrop-blur-md">
-                  <SlideTabs
-                    tabs={[
-                      { id: 'premise', label: 'Story Premise Mode', icon: <Sparkles className="w-3.5 h-3.5 text-cyan-400" /> },
-                      { id: 'voiceover', label: 'Direct Voiceover & Script Mode', icon: <Mic className="w-3.5 h-3.5 text-amber-300" /> }
-                    ]}
-                    activeId={inputMode}
-                    onChange={(id) => setInputMode(id as any)}
-                    layoutId="workflow-mode-indicator-focus"
-                    indicatorClassName={
-                      inputMode === 'premise'
-                        ? 'bg-gradient-to-r from-blue-600 to-cyan-500 shadow-glow-cyan/30'
-                        : 'bg-gradient-to-r from-[#B4532A] to-amber-600 shadow-glow-amber/30'
-                    }
-                  />
-                  <div className="text-[11px] text-slate-400 px-3 font-mono hidden md:block">
-                    {inputMode === 'premise'
-                      ? 'AI generates full narrative script from premise'
-                      : 'Preserves your exact voiceover words & generates matched scenes'}
-                  </div>
-                </div>
-
-                {/* Animated Mode Panel Switcher */}
-                <AnimatePresence mode="wait">
-                  {inputMode === 'voiceover' ? (
-                    <motion.div
-                      key="voiceover-segment"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.2 }}
-                      className="bg-[#040A18]/90 border border-amber-500/25 rounded-2xl p-5 sm:p-6 space-y-4 shadow-xl relative overflow-hidden"
-                    >
-                      {/* Segment Header */}
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-[#B4532A]/25 text-amber-300 border border-[#B4532A]/50 font-bold shadow-sm">
-                              Direct Voiceover Input
-                            </span>
-                            <span className="text-xs text-slate-400">
-                              Your exact words preserved • Synchronized 4–8s scene cuts
-                            </span>
-                          </div>
-                          <h3 className="text-sm font-bold text-white mt-1 flex items-center gap-2">
-                            <span>Input Your Voiceover Narration</span>
-                            {isDictating && <SoundWaveVisualizer isPlaying={true} barCount={8} color="from-rose-400 to-amber-400" />}
-                          </h3>
-                        </div>
-
-                        {/* Quick Toolbar */}
-                        <div className="flex flex-wrap items-center gap-2">
-                          <AnimatedButton
-                            type="button"
-                            variant={isDictating ? 'danger' : 'secondary'}
-                            onClick={toggleDictation}
-                            icon={<Mic className={`w-3.5 h-3.5 ${isDictating ? 'text-white' : 'text-rose-400'}`} />}
-                            className={isDictating ? 'animate-pulse-halo' : ''}
-                          >
-                            {isDictating ? 'Listening... (Click to stop)' : 'Dictate with Mic'}
-                          </AnimatedButton>
-
-                          <AnimatedButton
-                            type="button"
-                            variant="secondary"
-                            onClick={async () => {
-                              try {
-                                const text = await navigator.clipboard.readText();
-                                if (text) setSharedScript((prev) => (prev ? prev + '\n\n' + text : text));
-                              } catch {
-                                alert('Clipboard access denied. Please paste manually into the editor.');
-                              }
-                            }}
-                          >
-                            Paste Clipboard
-                          </AnimatedButton>
-
-                          <AnimatedButton
-                            type="button"
-                            variant="secondary"
-                            onClick={() =>
-                              setSharedScript(
-                                `In the Valley of Elah, Israel and the Philistines stood locked in standoff. Goliath, their colossal champion, stepped out into the dust to taunt the trembling ranks.\n\nA young shepherd named David, bearing grain for his brothers, refused to surrender faith to fear.\n\nReaching into the dry brook, he selected five smooth stones. With only his sling and divine conviction, he stepped into history.`
-                              )
+                        <AnimatedButton
+                          type="button"
+                          variant="secondary"
+                          onClick={async () => {
+                            try {
+                              const text = await navigator.clipboard.readText();
+                              if (text) setSharedScript((prev) => (prev ? prev + '\n\n' + text : text));
+                            } catch {
+                              alert('Clipboard access denied. Please paste manually into the editor.');
                             }
-                          >
-                            Load Sample
-                          </AnimatedButton>
+                          }}
+                        >
+                          Paste Clipboard
+                        </AnimatedButton>
 
-                          <AnimatedButton
-                            type="button"
-                            variant="ghost"
-                            onClick={() => setSharedScript('')}
-                            className="text-slate-400 hover:text-rose-300"
-                          >
-                            Clear
-                          </AnimatedButton>
-                        </div>
+                        <AnimatedButton
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setSharedScript('')}
+                          className="text-slate-400 hover:text-rose-300"
+                        >
+                          Clear
+                        </AnimatedButton>
                       </div>
+                    </div>
 
-                      {/* Large Script Textarea */}
-                      <textarea
-                        rows={7}
-                        value={sharedScript}
-                        onChange={(e) => setSharedScript(e.target.value)}
-                        disabled={isGenerating}
-                        placeholder="Paste, type, or dictate your full voiceover script here..."
-                        className="w-full bg-black/50 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#B4532A] transition-all font-sans leading-relaxed resize-y shadow-inner"
-                      />
+                    {/* High-Contrast Script Textarea with Pop Focus */}
+                    <textarea
+                      rows={8}
+                      value={sharedScript}
+                      onChange={(e) => setSharedScript(e.target.value)}
+                      disabled={isGenerating}
+                      placeholder="Paste, type, or dictate your full voiceover script here... (e.g., In the deep trenches of the Pacific, sunlight fades into total silence...)"
+                      className="w-full bg-black/60 border border-white/[0.1] rounded-2xl p-5 text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all font-sans leading-relaxed resize-y shadow-inner"
+                    />
 
-                      {/* 3D Animated Stat Cubes */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400 uppercase font-mono">Word Count</div>
-                          <div className="text-base font-bold text-white font-mono mt-0.5">{inputWords} words</div>
-                        </div>
-                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400 uppercase font-mono">Spoken Runtime</div>
-                          <div className="text-base font-bold text-amber-300 font-mono mt-0.5">~{calculatedDuration}s</div>
-                        </div>
-                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400 uppercase font-mono">Scene Budget</div>
-                          <div className="text-base font-bold text-cyan-300 font-mono mt-0.5">{estimatedScenes} scenes</div>
-                        </div>
-                        <div className="bg-black/50 border border-white/[0.08] rounded-xl p-3 text-center">
-                          <div className="text-[10px] text-slate-400 uppercase font-mono">Pacing Target</div>
-                          <div className="text-base font-bold text-emerald-400 font-mono mt-0.5">~7.5s / scene</div>
-                        </div>
+                    {/* Pop Stat Cubes (Cyan, Amber, Purple, Emerald) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
+                      <div className="bg-black/50 border border-cyan-500/25 rounded-2xl p-4 text-center shadow-lg">
+                        <div className="text-[10px] text-cyan-300 uppercase font-mono font-bold tracking-wider">Word Count</div>
+                        <div className="text-lg font-bold text-white font-mono mt-0.5">{inputWords} words</div>
                       </div>
-                    </motion.div>
-                  ) : (
-                    /* MODE 2: Story Premise Generator */
-                    <motion.div
-                      key="premise-segment"
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -12 }}
-                      transition={{ duration: 0.2 }}
-                      className="space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-semibold text-slate-200">Story Premise / Subject Matter</label>
-                        <span className="text-xs text-slate-400">Enter a concept to synthesize an original narrative</span>
+                      <div className="bg-black/50 border border-amber-500/25 rounded-2xl p-4 text-center shadow-lg">
+                        <div className="text-[10px] text-amber-300 uppercase font-mono font-bold tracking-wider">Spoken Runtime</div>
+                        <div className="text-lg font-bold text-amber-300 font-mono mt-0.5">~{calculatedDuration}s</div>
                       </div>
-                      <textarea
-                        rows={3}
-                        value={topic}
-                        onChange={(e) => setTopic(e.target.value)}
-                        disabled={isGenerating}
-                        placeholder="Type a story premise (e.g., David vs Goliath: The Valley of Elah & The Anatomy of Divine Faith)"
-                        className="w-full bg-black/50 border border-white/[0.08] rounded-2xl p-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 transition-all font-sans leading-relaxed shadow-inner"
-                      />
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[11px] text-slate-400 font-medium mr-1">Inspirations:</span>
-                        {SAMPLE_PROMPTS.map((p) => (
-                          <button
-                            key={p}
-                            type="button"
-                            onClick={() => {
-                              setTopic(p);
-                              if (p.includes('David') || p.includes('Finney')) setNicheId('bible-stories');
-                              else if (p.includes('World Cup')) setNicheId('football-history');
-                              else if (p.includes('Shadow Self')) setNicheId('human-psychology');
-                              else if (p.includes('Dwarka')) setNicheId('ancient-civilizations');
-                              else if (p.includes('Dyatlov')) setNicheId('forgotten-mysteries');
-                            }}
-                            disabled={isGenerating}
-                            className="text-[11px] bg-black/50 hover:bg-white/10 text-slate-400 hover:text-cyan-300 px-3 py-1 rounded-lg border border-white/[0.08] transition-colors truncate max-w-[280px]"
-                          >
-                            {p}
-                          </button>
-                        ))}
+                      <div className="bg-black/50 border border-purple-500/25 rounded-2xl p-4 text-center shadow-lg">
+                        <div className="text-[10px] text-purple-300 uppercase font-mono font-bold tracking-wider">Scene Budget</div>
+                        <div className="text-lg font-bold text-purple-300 font-mono mt-0.5">{estimatedScenes} scenes</div>
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Duration Slider (Active in Premise Mode) */}
-                {inputMode === 'premise' && (
-                  <DurationSlider
-                    value={duration}
-                    onChange={setDuration}
-                    disabled={isGenerating}
-                  />
+                      <div className="bg-black/50 border border-emerald-500/25 rounded-2xl p-4 text-center shadow-lg">
+                        <div className="text-[10px] text-emerald-300 uppercase font-mono font-bold tracking-wider">Pacing Target</div>
+                        <div className="text-lg font-bold text-emerald-400 font-mono mt-0.5">~7.5s / scene</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ) : (
+                  /* MODE 2: Clean Story Premise Generator */
+                  <motion.div
+                    key="premise-segment"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-bold text-white">Story Premise / Subject Matter</label>
+                      <span className="text-xs text-slate-400">Enter a concept to synthesize an original narrative</span>
+                    </div>
+                    <textarea
+                      rows={4}
+                      value={topic}
+                      onChange={(e) => setTopic(e.target.value)}
+                      disabled={isGenerating}
+                      placeholder="Type your story premise (e.g., The Lost Kingdom of Benin: The Great Earthworks & Ancient Bronze Masters...)"
+                      className="w-full bg-black/60 border border-white/[0.1] rounded-2xl p-5 text-sm sm:text-base text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all font-sans leading-relaxed shadow-inner"
+                    />
+                  </motion.div>
                 )}
+              </AnimatePresence>
 
-                {/* Niche Selector */}
-                <NicheSelector
-                  selectedNicheId={nicheId}
-                  onSelectNiche={setNicheId}
+              {/* Duration Slider (Active in Premise Mode) */}
+              {inputMode === 'premise' && (
+                <DurationSlider
+                  value={duration}
+                  onChange={setDuration}
                   disabled={isGenerating}
                 />
+              )}
 
-                {/* Tone Controls */}
-                <div className="space-y-3 pt-2">
-                  <label className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                    <Compass className="w-4 h-4 text-emerald-400" />
-                    <span>Narration Tone & Perspective</span>
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                    {TONE_OPTIONS.map((t) => (
+              {/* Niche Selector: Spacious Listed Layout */}
+              <NicheSelector
+                selectedNicheId={nicheId}
+                onSelectNiche={setNicheId}
+                disabled={isGenerating}
+              />
+
+              {/* Tone & Perspective Controls: Listed Out with Pop Accents */}
+              <div className="space-y-3 pt-2">
+                <label className="text-sm font-bold text-white flex items-center gap-2">
+                  <Compass className="w-4 h-4 text-emerald-400" />
+                  <span>Narration Tone & Perspective</span>
+                </label>
+                <div className="space-y-2">
+                  {TONE_OPTIONS.map((t) => {
+                    const isSelected = tone === t.id;
+                    return (
                       <button
                         key={t.id}
                         type="button"
                         disabled={isGenerating}
                         onClick={() => setTone(t.id)}
-                        className={`p-3.5 rounded-2xl border text-left transition-all ${
-                          tone === t.id
-                            ? 'bg-gradient-to-b from-[#08152B] to-[#040B17] border-emerald-400 ring-1 ring-emerald-400/60 shadow-lg scale-[1.02]'
+                        className={`w-full p-4 rounded-2xl border text-left transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-[#06152F] via-[#041024] to-[#020914] border-emerald-400 ring-1 ring-emerald-400/60 shadow-lg'
                             : 'bg-black/50 border-white/[0.08] hover:border-slate-500 hover:bg-white/5'
                         }`}
                       >
-                        <div className="text-xs font-bold text-white mb-0.5">{t.label}</div>
-                        <div className="text-[10px] text-slate-400 line-clamp-1">{t.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Action Trigger Buttons */}
-                <div className="pt-4 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="text-xs text-slate-400 flex items-center gap-2">
-                    <span className="font-semibold text-slate-200">Execution Strategy: </span>
-                    <span>
-                      {isScript
-                        ? `⚡ Script Partitioning Engine (${estimatedScenes} scenes @ ~7.5s)`
-                        : duration <= 180
-                        ? '⚡ Single-Pass Rapid Generator'
-                        : '🧩 2-Stage Master Outline & Recursive Expansion'}
-                    </span>
-                    <span className="hidden md:inline-flex items-center gap-1 text-[11px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                      <UserCheck className="w-3 h-3" />
-                      Character Locked
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <AnimatedButton
-                      type="button"
-                      variant="secondary"
-                      disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
-                      onClick={() => handleGenerate(true)}
-                      icon={<Zap className="w-4 h-4 text-emerald-400" />}
-                      className="flex-1 sm:flex-none"
-                    >
-                      Offline (0 API)
-                    </AnimatedButton>
-
-                    <AnimatedButton
-                      type="button"
-                      variant={isDirectVoiceover ? 'cyber' : 'primary'}
-                      shimmer={true}
-                      disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
-                      onClick={() => handleGenerate(false)}
-                      icon={
-                        isDirectVoiceover ? (
-                          <Mic className="w-4 h-4 text-amber-300" />
-                        ) : engineMode === 'offline' ? (
-                          <Zap className="w-4 h-4" />
-                        ) : (
-                          <Sparkles className="w-4 h-4 text-cyan-200" />
-                        )
-                      }
-                      className="flex-1 sm:flex-none text-xs sm:text-sm px-6 py-3 font-bold"
-                    >
-                      {isGenerating
-                        ? 'Synthesizing Storyboard...'
-                        : isDirectVoiceover
-                        ? `Generate Storyboard from Voiceover (${estimatedScenes} Scenes)`
-                        : engineMode === 'offline'
-                        ? 'Generate Offline Storyboard'
-                        : 'Generate Cloud AI Storyboard'}
-                    </AnimatedButton>
-                  </div>
-                </div>
-              </section>
-            </Card3D>
-
-            {/* Progress Tracker */}
-            <ProgressTracker
-              stage={progress.stage}
-              percent={progress.percent}
-              message={progress.message}
-              isGenerating={isGenerating}
-            />
-
-            {/* Storyboard Output Area */}
-            {storyboard && (
-              <motion.section
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: 'easeOut' }}
-                className="space-y-6"
-              >
-                {/* Storyboard Header Card */}
-                <div className="bg-[#030714]/90 border border-cyan-500/30 rounded-3xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xl backdrop-blur-2xl">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-[11px] font-mono uppercase px-2.5 py-0.5 rounded-full bg-blue-500/20 text-cyan-300 border border-blue-400/30 font-bold">
-                        {storyboard.niche}
-                      </span>
-                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-black/50 border border-white/[0.08] text-slate-300">
-                        {storyboard.tone}
-                      </span>
-                      <span className="text-[11px] font-mono px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30">
-                        {storyboard.image_model}
-                      </span>
-                    </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">{storyboard.title}</h3>
-                    <p className="text-xs text-slate-400 mt-1.5">
-                      Total Runtime: <strong className="text-cyan-300 font-mono text-sm">{storyboard.total_duration}</strong> across{' '}
-                      <strong className="text-white">{storyboard.total_scenes} visual scenes</strong> (Avg Pacing:{' '}
-                      {storyboard.pacing_wpm} WPM • Every scene 4–8s)
-                    </p>
-                  </div>
-
-                  {/* Studio Actions & Export */}
-                  <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-center">
-                    <AnimatedButton
-                      type="button"
-                      variant="cyber"
-                      onClick={() => setStudioLayout('voiceover')}
-                      icon={<Mic className="w-3.5 h-3.5 text-amber-300" />}
-                    >
-                      Audition in Voiceover Studio
-                    </AnimatedButton>
-
-                    <AnimatedButton
-                      type="button"
-                      variant="primary"
-                      onClick={() => setIsExportOpen(true)}
-                      icon={<Download className="w-3.5 h-3.5" />}
-                    >
-                      Export All
-                    </AnimatedButton>
-                  </div>
-                </div>
-
-                {/* Master Outline Accordion */}
-                {storyboard.outline && (
-                  <div className="bg-[#030714]/85 border border-white/[0.08] rounded-2xl overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() => setShowOutline(!showOutline)}
-                      className="w-full px-5 py-4 flex items-center justify-between text-left hover:bg-white/[0.04] transition-colors"
-                    >
-                      <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
-                        <Layers className="w-4 h-4 text-cyan-400" />
-                        <span>Master Outline & Act Breakdown ({storyboard.outline.acts.length} Acts)</span>
-                      </div>
-                      {showOutline ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                    </button>
-
-                    {showOutline && (
-                      <div className="p-5 border-t border-white/[0.08] space-y-4 bg-black/50">
-                        <p className="text-xs text-slate-300 italic">{storyboard.outline.premise}</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                          {storyboard.outline.acts.map((act) => (
-                            <div key={act.act_number} className="bg-black/50 p-4 rounded-xl border border-white/[0.08] space-y-2">
-                              <h5 className="text-xs font-bold text-cyan-300">{act.act_title}</h5>
-                              <ul className="space-y-1.5">
-                                {act.chapters.map((chap) => (
-                                  <li key={chap.chapter_number} className="text-[11px] text-slate-300">
-                                    <span className="text-slate-400 font-medium">Ch {chap.chapter_number}:</span> {chap.chapter_title}
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ))}
+                        <div>
+                          <div className="text-sm font-bold text-white mb-0.5 flex items-center gap-2">
+                            <span>{t.label}</span>
+                            {isSelected && <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />}
+                          </div>
+                          <div className="text-xs text-slate-400">{t.desc}</div>
                         </div>
-                      </div>
-                    )}
+
+                        <div className="shrink-0 self-start sm:self-center">
+                          {isSelected ? (
+                            <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                              ACTIVE
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-500 font-semibold">Select</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Trigger Buttons */}
+              <div className="pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-xs text-slate-400 flex items-center gap-2">
+                  <span className="font-semibold text-slate-200">Execution Strategy: </span>
+                  <span>
+                    {isScript
+                      ? `⚡ Script Partitioning Engine (${estimatedScenes} scenes @ ~7.5s)`
+                      : duration <= 180
+                      ? '⚡ Rapid Single-Pass Synthesis'
+                      : '🧩 2-Stage Master Outline & Recursive Expansion'}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <AnimatedButton
+                    type="button"
+                    variant="secondary"
+                    disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
+                    onClick={() => handleGenerate(true)}
+                    icon={<Zap className="w-4 h-4 text-emerald-400" />}
+                    className="flex-1 sm:flex-none text-xs px-4 py-2.5 font-bold"
+                  >
+                    Offline (0 API)
+                  </AnimatedButton>
+
+                  <AnimatedButton
+                    type="button"
+                    variant={isDirectVoiceover ? 'cyber' : 'primary'}
+                    shimmer={true}
+                    disabled={isGenerating || (isDirectVoiceover ? !sharedScript.trim() : !topic.trim())}
+                    onClick={() => handleGenerate(false)}
+                    icon={
+                      isDirectVoiceover ? (
+                        <Mic className="w-4 h-4 text-amber-300" />
+                      ) : engineMode === 'offline' ? (
+                        <Zap className="w-4 h-4" />
+                      ) : (
+                        <Sparkles className="w-4 h-4 text-cyan-200" />
+                      )
+                    }
+                    className="flex-1 sm:flex-none text-xs sm:text-sm px-7 py-3.5 font-bold shadow-glow-cyan"
+                  >
+                    {isGenerating
+                      ? 'Synthesizing Storyboard...'
+                      : isDirectVoiceover
+                      ? `Generate Storyboard from Voiceover (${estimatedScenes} Scenes)`
+                      : engineMode === 'offline'
+                      ? 'Generate Offline Storyboard'
+                      : 'Generate Cloud AI Storyboard'}
+                  </AnimatedButton>
+                </div>
+              </div>
+            </section>
+          </Card3D>
+
+          {/* Real-Time Progress Tracker */}
+          <ProgressTracker
+            stage={progress.stage}
+            percent={progress.percent}
+            message={progress.message}
+            isGenerating={isGenerating}
+          />
+
+          {/* Storyboard Output Area: Spacious Sequential Layout */}
+          {storyboard && (
+            <motion.section
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="space-y-8"
+            >
+              {/* Storyboard Header Card with Pop Accents */}
+              <div className="bg-[#030714]/90 border border-cyan-500/30 rounded-3xl p-7 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-2xl backdrop-blur-2xl">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    <span className="text-[11px] font-mono uppercase px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 font-bold">
+                      {storyboard.niche}
+                    </span>
+                    <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/40 font-bold">
+                      {storyboard.tone}
+                    </span>
+                    <span className="text-[11px] font-mono px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 font-bold">
+                      {storyboard.image_model}
+                    </span>
                   </div>
-                )}
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{storyboard.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1.5 font-mono">
+                    Runtime: <strong className="text-cyan-300 text-sm">{storyboard.total_duration}</strong> across{' '}
+                    <strong className="text-white">{storyboard.total_scenes} sequential scenes</strong> (Pacing:{' '}
+                    {storyboard.pacing_wpm} WPM • 4–8s bounds)
+                  </p>
+                </div>
 
-                {/* Dedicated Primary Navigation Tabs */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-2">
-                  <SlideTabs
-                    tabs={[
-                      { id: 'voiceover', label: 'Full Voiceover Script', icon: <Mic className="w-3.5 h-3.5 text-emerald-400" /> },
-                      { id: 'visuals', label: 'Visual Prompts & Continuity', icon: <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> },
-                      { id: 'timeline', label: 'Timeline & Production Cards', icon: <Clock className="w-3.5 h-3.5 text-cyan-400" /> }
-                    ]}
-                    activeId={activeTab}
-                    onChange={(id) => setActiveTab(id as any)}
-                    layoutId="storyboard-subtab-indicator"
-                  />
+                {/* Studio Actions & Export */}
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <AnimatedButton
+                    type="button"
+                    variant="cyber"
+                    shimmer={true}
+                    onClick={() => setActiveTab('voiceover')}
+                    icon={<Mic className="w-4 h-4 text-amber-300" />}
+                    className="text-xs px-4 py-2.5 font-bold"
+                  >
+                    Audition in Voiceover Studio
+                  </AnimatedButton>
 
-                  {activeTab === 'timeline' && (
-                    <div className="flex items-center bg-black/50 border border-white/[0.08] p-1 rounded-xl">
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('cards')}
-                        title="Timeline Cards"
-                        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                          viewMode === 'cards'
-                            ? 'bg-white/10 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <LayoutGrid className="w-4 h-4" />
-                        <span>Cards</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setViewMode('table')}
-                        title="Tabular View"
-                        className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                          viewMode === 'table'
-                            ? 'bg-white/10 text-white shadow-sm'
-                            : 'text-slate-400 hover:text-white'
-                        }`}
-                      >
-                        <TableIcon className="w-4 h-4" />
-                        <span>Table</span>
-                      </button>
+                  <AnimatedButton
+                    type="button"
+                    variant="primary"
+                    onClick={() => setIsExportOpen(true)}
+                    icon={<Download className="w-4 h-4" />}
+                    className="text-xs px-4 py-2.5 font-bold"
+                  >
+                    Export All
+                  </AnimatedButton>
+                </div>
+              </div>
+
+              {/* Master Outline Accordion */}
+              {storyboard.outline && (
+                <div className="bg-[#030714]/85 border border-white/[0.08] rounded-2xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowOutline(!showOutline)}
+                    className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/[0.04] transition-colors"
+                  >
+                    <div className="flex items-center gap-2.5 text-xs font-bold text-slate-200">
+                      <Layers className="w-4 h-4 text-cyan-400" />
+                      <span>Master Outline Breakdown ({storyboard.outline.acts.length} Acts)</span>
+                    </div>
+                    {showOutline ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                  </button>
+
+                  {showOutline && (
+                    <div className="p-6 border-t border-white/[0.08] space-y-4 bg-black/60">
+                      <p className="text-xs text-slate-300 italic">{storyboard.outline.premise}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {storyboard.outline.acts.map((act) => (
+                          <div key={act.act_number} className="bg-black/50 p-4 rounded-xl border border-white/[0.08] space-y-2">
+                            <h5 className="text-xs font-bold text-cyan-300">{act.act_title}</h5>
+                            <ul className="space-y-1.5">
+                              {act.chapters.map((chap) => (
+                                <li key={chap.chapter_number} className="text-[11px] text-slate-300">
+                                  <span className="text-slate-400 font-medium">Ch {chap.chapter_number}:</span> {chap.chapter_title}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* TAB CONTENT 1: Full Voiceover Script */}
-                {activeTab === 'voiceover' && (
-                  <FullVoiceoverScript
-                    storyboard={storyboard}
-                    onOpenInVoiceoverStudio={() => setStudioLayout('voiceover')}
-                  />
-                )}
+              {/* Storyboard Navigation Tabs */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/[0.08] pb-3">
+                <SlideTabs
+                  tabs={[
+                    { id: 'voiceover', label: 'Full Voiceover Script', icon: <Mic className="w-4 h-4 text-emerald-400" /> },
+                    { id: 'visuals', label: 'Visual Prompts & Character Sheet', icon: <ImageIcon className="w-4 h-4 text-purple-400" /> },
+                    { id: 'timeline', label: 'Sequential Scene Cards', icon: <Clock className="w-4 h-4 text-cyan-400" /> }
+                  ]}
+                  activeId={storyboardViewTab}
+                  onChange={(id) => setStoryboardViewTab(id as any)}
+                  layoutId="storyboard-subview-indicator"
+                  indicatorClassName="bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 shadow-glow-cyan/30"
+                />
 
-                {/* TAB CONTENT 2: Visual Generation & Character Model */}
-                {activeTab === 'visuals' && (
-                  <CharacterModelSheet storyboard={storyboard} />
-                )}
-
-                {/* TAB CONTENT 3: Timeline & Storyboard Table */}
-                {activeTab === 'timeline' && (
-                  <div className="space-y-4">
-                    {viewMode === 'table' ? (
-                      <StoryboardTable scenes={storyboard.scenes} />
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {storyboard.scenes.map((scene) => (
-                          <SceneCard key={scene.scene_number} scene={scene} />
-                        ))}
-                      </div>
-                    )}
+                {storyboardViewTab === 'timeline' && (
+                  <div className="flex items-center bg-black/50 border border-white/[0.08] p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('cards')}
+                      className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        viewMode === 'cards' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <LayoutGrid className="w-4 h-4" />
+                      <span>Cards</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setViewMode('table')}
+                      className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                        viewMode === 'table' ? 'bg-white/10 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <TableIcon className="w-4 h-4" />
+                      <span>Table</span>
+                    </button>
                   </div>
                 )}
-              </motion.section>
-            )}
-          </motion.div>
-        )}
+              </div>
+
+              {/* TAB CONTENT 1: Full Voiceover Script */}
+              {storyboardViewTab === 'voiceover' && (
+                <FullVoiceoverScript
+                  storyboard={storyboard}
+                  onOpenInVoiceoverStudio={() => setActiveTab('voiceover')}
+                />
+              )}
+
+              {/* TAB CONTENT 2: Character Sheet & Visual Consistency */}
+              {storyboardViewTab === 'visuals' && (
+                <CharacterModelSheet storyboard={storyboard} />
+              )}
+
+              {/* TAB CONTENT 3: Sequential Scene Cards (Listed Out) */}
+              {storyboardViewTab === 'timeline' && (
+                <div className="space-y-4">
+                  {viewMode === 'table' ? (
+                    <StoryboardTable scenes={storyboard.scenes} />
+                  ) : (
+                    <div className="space-y-4">
+                      {storyboard.scenes.map((scene) => (
+                        <SceneCard key={scene.scene_number} scene={scene} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </motion.section>
+          )}
+        </div>
+
+        {/* ======================================================== */}
+        {/* SECTION 2: VOICEOVER STUDIO & AUDIO ENGINE                */}
+        {/* (Kept mounted in DOM so audio & state are never lost)      */}
+        {/* ======================================================== */}
+        <div className={activeTab === 'voiceover' ? 'space-y-8' : 'hidden'}>
+          <VoiceoverStudio
+            initialScript={sharedScript}
+            initialTopic={storyboard?.title || topic}
+            currentVoice={selectedVoice}
+            onScriptChange={(script) => setSharedScript(script)}
+            onVoiceChange={(v) => setSelectedVoice(v)}
+            onSendToArchitect={(script) => {
+              setSharedScript(script);
+              setInputMode('voiceover');
+              setActiveTab('architect');
+            }}
+          />
+        </div>
       </main>
 
       {/* Export Modal */}
